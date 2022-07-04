@@ -27,7 +27,7 @@ class MyTestCase(unittest.TestCase):
         chessboard[(4, 4)] = COLOR_WHITE
         chessboard[(4, 3)] = COLOR_BLACK
         chessboard[(3, 4)] = COLOR_BLACK
-        self.ai.find_valid(chessboard)
+        self.ai.candidate_list = self.ai.find_valid(chessboard, self.ai.candidate_list)
         self.assertEqual({(2, 3), (3, 2), (5, 4), (4, 5)}, set(self.ai.candidate_list))
 
 

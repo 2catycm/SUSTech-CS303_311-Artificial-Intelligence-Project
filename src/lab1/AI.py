@@ -31,9 +31,9 @@ class AI(object):
         # ==================================================================
         # Write your algorithm here
         # Here is the simplest sample:Random decision
-        self.find_valid(chessboard)
+        self.candidate_list = self.find_valid(chessboard, self.candidate_list)
         if len(self.candidate_list)==0:
-            self.candidate_list = []
+            return
         else:
             self.execute_decision(self.candidate_list[random.randint(0, len(self.candidate_list)-1)])
         # ==============Find new pos========================================
@@ -63,13 +63,18 @@ class AI(object):
                     break  # 如果提前出现了空格也不对
                 neighbour += AI.udlr_luruldrd[i]
         return False
-    # void, 修改决策之前的 candidate_list
-    def find_valid(self, chessboard):
+    def find_valid(self, chessboard, candidate_list=None):
+        if candidate_list is None:
+            candidate_list = []
         arg_where = np.argwhere(chessboard == 0).tolist()
-        # self.candidate_list = np.argwhere(is_valid_move(arg_where))
         for index in arg_where:
             if self.is_valid_move(index, chessboard):
-                self.candidate_list.append(tuple(index))
+                candidate_list.append(tuple(index))
+        return candidate_list
     # 根据 decision:2维元组 修改 candidate_list
     def execute_decision(self, decision):
         self.candidate_list.append(decision)
+
+    # 评估函数
+    def value_evaluation(self, chessboard):
+        pass

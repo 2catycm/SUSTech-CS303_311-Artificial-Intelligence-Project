@@ -2,7 +2,6 @@ import numpy as np
 import random
 import time
 
-
 COLOR_BLACK = -1
 COLOR_WHITE = 1
 COLOR_NONE = 0
@@ -31,11 +30,11 @@ class AI(object):
         # ==================================================================
         # Write your algorithm here
         # Here is the simplest sample:Random decision
-        self.find_valid(chessboard)
-        if len(self.candidate_list)==0:
-            self.candidate_list = []
+        self.candidate_list = self.find_valid(self.chessboard_size, self.color, chessboard)
+        if len(self.candidate_list) == 0:
+            return
         else:
-            self.execute_decision(self.candidate_list[random.randint(0, len(self.candidate_list)-1)])
+            self.execute_decision(self.candidate_list[random.randint(0, len(self.candidate_list) - 1)])
         # ==============Find new pos========================================
         # Make sure that the position of your decision in chess board is empty.
         # If not, the system will return error.
@@ -47,29 +46,35 @@ class AI(object):
         # If there is no valid position, you must return an empty list.
 
     # 基本环境
-    def is_valid_index(self, index):
-        return 0<=index[0]<self.chessboard_size and 0<=index[1]<self.chessboard_size
-    def is_valid_move(self, index: np.ndarray, chessboard):
+    @staticmethod
+    def is_valid_index(chessboard_size, index):
+        return 0 <= index[0] < chessboard_size and 0 <= index[1] < chessboard_size
+    @staticmethod
+    def is_valid_move(chessboard_size, color, index: np.ndarray, chessboard):
         if chessboard[tuple(index)] != 0:
             return False
         for i, neighbour in enumerate(index + AI.udlr_luruldrd):
-            if (not self.is_valid_index(neighbour)) or chessboard[tuple(neighbour)]!=-self.color:
+            if (not AI.is_valid_index(chessboard_size, neighbour)) or chessboard[tuple(neighbour)] != -color:
                 continue
-            while self.is_valid_index(neighbour):
-                if chessboard[tuple(neighbour)]==self.color:
+            while AI.is_valid_index(chessboard_size, neighbour):
+                if chessboard[tuple(neighbour)] == color:
                     # 找到友军了
                     return True
-                elif chessboard[tuple(neighbour)]!=-self.color:
+                elif chessboard[tuple(neighbour)] != -color:
                     break  # 如果提前出现了空格也不对
                 neighbour += AI.udlr_luruldrd[i]
         return False
-    # void, 修改决策之前的 candidate_list
-    def find_valid(self, chessboard):
+
+    @staticmethod
+    def find_valid(chessboard_size, color, chessboard, candidate_list=None):
+        if candidate_list is None:
+            candidate_list = []
         arg_where = np.argwhere(chessboard == 0).tolist()
-        # self.candidate_list = np.argwhere(is_valid_move(arg_where))
         for index in arg_where:
-            if self.is_valid_move(index, chessboard):
-                self.candidate_list.append(tuple(index))
+            if AI.is_valid_move(chessboard_size, color, index, chessboard):
+                candidate_list.append(tuple(index))
+        return candidate_list
+
     # 根据 decision:2维元组 修改 candidate_list
     def execute_decision(self, decision):
         self.candidate_list.append(decision)

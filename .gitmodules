@@ -1,0 +1,6 @@
+[submodule "ref/zebra"]
+	path = ref/zebra
+	url = https://github.com/hoshir/zebra.git
+[submodule "ref/CutieDeng"]
+	path = ref/CutieDeng
+	url = https://github.com/CutieDeng/PyReversiGame.git

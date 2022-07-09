@@ -35,7 +35,9 @@ class AI(object):
         if len(self.candidate_list)==0:
             return
         else:
-            self.execute_decision(self.candidate_list[random.randint(0, len(self.candidate_list)-1)])
+            # decision = self.candidate_list[random.randint(0, len(self.candidate_list)-1)]
+            decision = max(self.candidate_list, key=self.single_piece_evaluation)
+            self.execute_decision(decision)
         # ==============Find new pos========================================
         # Make sure that the position of your decision in chess board is empty.
         # If not, the system will return error.
@@ -63,13 +65,14 @@ class AI(object):
                     break  # 如果提前出现了空格也不对
                 neighbour += AI.udlr_luruldrd[i]
         return False
-    def find_valid(self, chessboard, candidate_list=None):
+    def find_valid(self, chessboard, candidate_list=None, numpy=False):
         if candidate_list is None:
             candidate_list = []
         arg_where = np.argwhere(chessboard == 0).tolist()
         for index in arg_where:
             if self.is_valid_move(index, chessboard):
-                candidate_list.append(tuple(index))
+                candidate_list.append(tuple(index) if not numpy else index)
+        # return candidate_list if not numpy else np.array(candidate_list)
         return candidate_list
     # 根据 decision:2维元组 修改 candidate_list
     def execute_decision(self, decision):
@@ -77,4 +80,17 @@ class AI(object):
 
     # 评估函数
     def value_evaluation(self, chessboard):
-        pass
+        valid = self.find_valid(chessboard, numpy=True)
+        return sum(map(self.single_piece_evaluation, valid))
+
+    def single_piece_evaluation(self, piece:np.array):
+        # 中间的价值大
+        return -np.linalg.norm(np.array(piece)-np.array([self.chessboard_size/2, self.chessboard_size/2]))
+
+    def decision_evaluation(self, piece:np.array, chessboard):
+        new_chessboard = self.decision_evolve(tuple(piece), chessboard)
+        return self.value_evaluation(new_chessboard)
+    def decision_evolve(self, piece:tuple, chessboard):
+        new_chessboard = chessboard.copy()
+        new_chessboard[piece] = self.color
+        return new_chessboard

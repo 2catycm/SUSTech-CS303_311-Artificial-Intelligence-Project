@@ -4,3 +4,6 @@
 [submodule "ref/CutieDeng"]
 	path = ref/CutieDeng
 	url = https://github.com/CutieDeng/PyReversiGame.git
+[submodule "ref/Tokasumi"]
+	path = ref/Tokasumi
+	url = https://github.com/Tokasumi/CS303-Fall2021-Reversed-Reversi.git

@@ -34,8 +34,8 @@ class ReversiEnv(object):
             while self.is_valid_index(neighbour) and chessboard[tuple(neighbour)] == -color:
                 neighbour += direction
             if self.is_valid_index(neighbour) and chessboard[tuple(neighbour)] == color:  # 找到友军了
-                while neighbour != index:
-                    chessboard[tuple(neighbour)] = color  # 修改棋盘
+                while (neighbour != (index-direction)).any():
+                    new_chessboard[tuple(neighbour)] = color  # 修改棋盘
                     neighbour -= direction
                 break
         return new_chessboard

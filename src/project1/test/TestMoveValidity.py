@@ -2,6 +2,8 @@ import unittest
 
 import numpy as np
 
+# from experiment.old_ai.AI import AI
+import src.project1.submit.AI as submit_ai
 from src.project1.submit.AI import AI
 
 COLOR_BLACK = -1
@@ -26,7 +28,7 @@ class TestMoveValidity(unittest.TestCase):
         chessboard[(4, 4)] = COLOR_WHITE
         chessboard[(4, 3)] = COLOR_BLACK
         chessboard[(3, 4)] = COLOR_BLACK
-        self.ai.candidate_list = self.ai.reversi_env.actions(chessboard, COLOR_BLACK, self.ai.candidate_list)
+        self.ai.go(chessboard)
         self.assertEqual({(2, 3), (3, 2), (5, 4), (4, 5)}, set(self.ai.candidate_list))
 
 

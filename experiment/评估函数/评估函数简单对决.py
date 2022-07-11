@@ -39,6 +39,33 @@ def become_less_first(a, p):
     return a.color * (new_black - new_white)
 
 
+import random
+
+
+def random_baseline(a, p):
+    return random.random()  # 0-1随机权重
+
+
+Vmap = np.array([[500, -25, 10, 5, 5, 10, -25, 500],
+                 [-25, -45, 1, 1, 1, 1, -45, -25],
+                 [10, 1, 3, 2, 2, 3, 1, 10],
+                 [5, 1, 2, 1, 1, 2, 1, 5],
+                 [5, 1, 2, 1, 1, 2, 1, 5],
+                 [10, 1, 3, 2, 2, 3, 1, 10],
+                 [-25, -45, 1, 1, 1, 1, -45, -25],
+                 [500, -25, 10, 5, 5, 10, -25, 500]])
+
+
+def map_weight_sum(a, p):
+    new_chessboard = a.reversi_env.updated_chessboard(a.chessboard, a.color, p)
+    return _map_weight_sum(new_chessboard, a.color)
+
+
+@njit(cache=True)
+def _map_weight_sum(board, mycolor):
+    return -(board * Vmap).sum() * mycolor
+
+def 
 alpha_beta_goes_to_the_end = 0  # 这是个稀罕情况
 
 
@@ -114,31 +141,38 @@ def alpha_beta_search(a, p, depth=3):
                      np.inf)  # 可能错过了一些剪枝，因为你是从min_value开始的
 
 
-# greedy_functions = [middle_action_first, middle_action_first]
-# greedy_functions = [middle_action_first, eat_less_first, become_less_first]
-greedy_functions = [middle_action_first, eat_less_first, become_less_first, alpha_beta_search]
-# greedy_functions = [eat_less_first, become_less_first, alpha_beta_search]
+if __name__ == '__main__':
 
-color_name = {ai.COLOR_BLACK:"Black", ai.COLOR_WHITE:"White"}
-length = len(greedy_functions)
-scores = [0 for i in range(length)]
-for i in range(length):
-    for j in range(i + 1, length):
-        print(f"{greedy_functions[i].__name__} is playing with {greedy_functions[j].__name__}")
-        for i_color in [ai.COLOR_BLACK, ai.COLOR_WHITE]:
-            print(f"{greedy_functions[i].__name__} is {color_name[i_color]}")
-            agents = {i_color: GreedyAI(chessboard_size, i_color, greedy_functions[i]),
-                      -i_color: GreedyAI(chessboard_size, -i_color, greedy_functions[j])}
-            simulator = Simulator(chessboard_size, time_out, agents)
-            winner = simulator.quick_run()
-            if winner == i_color:
-                print(f"{greedy_functions[i].__name__} won.")
-                scores[i] += 1
-            elif winner == -i_color:
-                print(f"{greedy_functions[j].__name__} won.")
-                scores[j] += 1
-            else:
-                print("draw.")
+    # greedy_functions = [middle_action_first, middle_action_first]
+    # greedy_functions = [middle_action_first, eat_less_first, become_less_first]
+    # greedy_functions = [middle_action_first, eat_less_first, become_less_first, alpha_beta_search]
+    # greedy_functions = [eat_less_first, become_less_first, alpha_beta_search]
 
-print(scores)
-print(alpha_beta_goes_to_the_end)  # depth为2 时， 8/6， 每场1.5次搜索到结尾
+    greedy_functions = [random_baseline, middle_action_first, eat_less_first, become_less_first, map_weight_sum]
+
+    color_name = {ai.COLOR_BLACK: "Black", ai.COLOR_WHITE: "White"}
+    length = len(greedy_functions)
+    scores = [0 for i in range(length)]
+    for i in range(length):
+        for j in range(i + 1, length):
+            print(f"{greedy_functions[i].__name__} is playing with {greedy_functions[j].__name__}")
+            for i_color in [ai.COLOR_BLACK, ai.COLOR_WHITE]:
+                print(f"{greedy_functions[i].__name__} is {color_name[i_color]}")
+                agents = {i_color: GreedyAI(chessboard_size, i_color, greedy_functions[i]),
+                          -i_color: GreedyAI(chessboard_size, -i_color, greedy_functions[j])}
+                simulator = Simulator(chessboard_size, time_out, agents)
+                winner = simulator.quick_run()
+                if winner == i_color:
+                    print(f"{greedy_functions[i].__name__} won.")
+                    if greedy_functions[i].__name__=="random_baseline":
+                        print(f'{greedy_functions[j].__name__} is not even able to beat random. ')
+                    scores[i] += 1
+                elif winner == -i_color:
+                    print(f"{greedy_functions[j].__name__} won.")
+                    scores[j] += 1
+                else:
+                    print("draw.")
+
+    print(map(lambda x:x.__name__, greedy_functions))
+    print(scores)
+    # print(alpha_beta_goes_to_the_end)  # depth为2 时， 8/6， 每场1.5次搜索到结尾

@@ -9,6 +9,7 @@ COLOR_WHITE = 1
 COLOR_NONE = 0
 random.seed(0)
 chessboard_size = 8  # 是个int， 棋盘是 chessboard_size x chessboard_size
+max_piece_cnt = chessboard_size ** 2
 
 ######################     Reversi Env   ######################
 udlr_luruldrd = np.array([[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]])
@@ -116,10 +117,17 @@ PVT = np.array([[500, -25, 10, 5, 5, 10, -25, 500],
                 [-25, -45, 1, 1, 1, 1, -45, -25],
                 [500, -25, 10, 5, 5, 10, -25, 500]])  # position value table
 
+PVT_max = abs(PVT).sum()
+
 
 @njit(cache=True, inline='always')
 def value_of_position(chessboard, color):
     return -(chessboard * PVT).sum() * color
+
+
+@njit(cache=True, inline='always')
+def min_max_normalized_value(lower_bound, upper_bound, value):
+    return (value - lower_bound) / (upper_bound - lower_bound)
 
 
 # don't change the class name
@@ -139,7 +147,8 @@ class AI(object):
         if len(self.candidate_list) == 0 or len(self.candidate_list) == 1:
             return
         else:
-            decision = self.decide(chessboard, self.color, numpy_list)
+            # decision = self.decide(chessboard, self.color, numpy_list)
+            value, decision = self.alpha_beta_search(chessboard, self.color)
             self.execute_decision(decision)
 
     @staticmethod
@@ -164,3 +173,68 @@ class AI(object):
 
     def execute_decision(self, decision):
         self.candidate_list.append(index2(decision))
+
+    @staticmethod
+    # @njit(cache=True)
+    def alpha_beta_search(chessboard, my_color, depth=3):
+        # @njit(cache=True)
+        def max_value(state, color, alpha, beta, remaining_depth=depth):
+            if is_terminal(state, color):
+                diff = my_color * get_winning_piece_cnt(state)  # 比如我是黑方，黑的比白的多10片，属于劣势，所以my_color=-1
+                return min_max_normalized_value(-max_piece_cnt, max_piece_cnt, diff) * 2, None
+
+            value,move = -np.inf, None
+            acts = actions(state, color)
+            if len(acts) == 0:
+                # 只能选择跳过这个action，value为对方的value
+                return min_value(state, -color, alpha, beta, remaining_depth - 1), None
+            # acts.sort(key=lambda a: value_of_position(updated_chessboard(state, -1, a), -1),
+            acts.sort(key=lambda a: value_of_position(updated_chessboard(state, color, a), my_color),
+                      reverse=True)  # 先遍历我下了棋后，对于我方而言最优的
+
+            if remaining_depth <= 1:
+                # 不需要为middle_action_first 构建新的棋盘。
+                return min_max_normalized_value(-PVT_max, +PVT_max,
+                                                value_of_position(updated_chessboard(state, color, acts[0]), my_color)), None
+
+            for action in acts:
+                new_chessboard = updated_chessboard(state, color, action)
+                new_value, _ = min_value(new_chessboard, -color, alpha, beta, remaining_depth - 1)
+                if new_value > value:
+                    value, move = new_value, action
+                    alpha = max(alpha, value)
+                if value >= beta:  # 这是beta剪枝, 因为min的某个祖先的要求，这个max被其父min剪掉。
+                    return value, move
+            return value, move
+
+        # @njit(cache=True)
+        def min_value(state, color, alpha, beta, remaining_depth=depth):
+            if is_terminal(state, color):
+                diff = my_color * get_winning_piece_cnt(state)
+                return min_max_normalized_value(-max_piece_cnt, max_piece_cnt, diff) * 2, None
+
+            value, move = +np.inf, None
+            acts = actions(state, color)
+            if len(acts) == 0:
+                # 只能选择跳过这个action，value为对方的value
+                return max_value(state, -color, alpha, beta, remaining_depth - 1), None
+            acts.sort(
+                key=lambda a: value_of_position(updated_chessboard(state, color, a), my_color),
+                reverse=False)  # 先遍历我下了棋后，对于我方而言最差的。
+
+            if remaining_depth <= 1:
+                # 不需要为middle_action_first 构建新的棋盘。
+                return min_max_normalized_value(-PVT_max, +PVT_max,
+                                                value_of_position(updated_chessboard(state, color, acts[0]), my_color)),None
+
+            for action in acts:
+                new_chessboard = updated_chessboard(state, color, action)
+                new_value, _ = max_value(new_chessboard, -color, alpha, beta, remaining_depth - 1)
+                if new_value < value:
+                    value, move = new_value, action
+                    beta = min(beta, value)
+                if value <= alpha:  # 这是alpha剪枝
+                    return value, move
+            return value, move
+
+        return max_value(chessboard, my_color, -np.inf, +np.inf)

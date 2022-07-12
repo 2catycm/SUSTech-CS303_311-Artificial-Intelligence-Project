@@ -31,6 +31,12 @@ class TestMoveValidity(unittest.TestCase):
         self.ai.go(chessboard)
         self.assertEqual({(2, 3), (3, 2), (5, 4), (4, 5)}, set(self.ai.candidate_list))
 
+    def test_alpha_beta_bug(self):
+        self.ai = AI(self.chessboard_size, COLOR_WHITE, self.time_out)
+
+        chessboard = np.array([[-1,  1,  1,  1,  1,  1,  1, -1,], [-1,  1,  1,  1,  1,  1,  1, -1,], [-1,  1, -1,  1, -1,  1,  1, -1,], [-1,  1, -1,  1,  1, -1,  1, -1,], [-1,  1,  1, -1, -1, -1,  1, -1,], [-1, -1, -1, -1, -1, -1,  1, -1,], [ 0,  0, -1, -1, -1,  1,  1, -1,], [ 0, -1, -1, -1, -1, -1,  1, -1,]])
+        self.ai.go(chessboard)
+
 
 if __name__ == '__main__':
     unittest.main()

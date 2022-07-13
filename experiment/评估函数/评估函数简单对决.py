@@ -1,6 +1,6 @@
 from simulator import Simulator
 from greedy_ai import GreedyAI
-import src.project1.submit.AI as ai
+import experiment.old_ai.AI as ai
 from numba import njit
 
 import numpy as np
@@ -60,12 +60,21 @@ def map_weight_sum(a, p):
     new_chessboard = a.reversi_env.updated_chessboard(a.chessboard, a.color, p)
     return _map_weight_sum(new_chessboard, a.color)
 
+Vmap2 = np.ones((8,8))
+
+
+def map_weight_sum2(a, p):
+    new_chessboard = a.reversi_env.updated_chessboard(a.chessboard, a.color, p)
+    return _map_weight_sum2(new_chessboard, a.color)
 
 @njit(cache=True)
 def _map_weight_sum(board, mycolor):
     return -(board * Vmap).sum() * mycolor
+@njit(cache=True)
+def _map_weight_sum2(board, mycolor):
+    return -(board * Vmap2).sum() * mycolor
 
-def 
+# def
 alpha_beta_goes_to_the_end = 0  # 这是个稀罕情况
 
 
@@ -148,7 +157,8 @@ if __name__ == '__main__':
     # greedy_functions = [middle_action_first, eat_less_first, become_less_first, alpha_beta_search]
     # greedy_functions = [eat_less_first, become_less_first, alpha_beta_search]
 
-    greedy_functions = [random_baseline, middle_action_first, eat_less_first, become_less_first, map_weight_sum]
+    greedy_functions = [random_baseline, middle_action_first, eat_less_first, become_less_first, map_weight_sum, map_weight_sum2]
+    # [3, 8, 3, 2, 10, 3]
 
     color_name = {ai.COLOR_BLACK: "Black", ai.COLOR_WHITE: "White"}
     length = len(greedy_functions)

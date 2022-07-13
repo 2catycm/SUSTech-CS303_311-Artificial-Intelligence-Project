@@ -1,4 +1,5 @@
-import src.project1.submit.AI as ai
+# import src.project1.submit.AI as ai
+import experiment.old_ai.AI as ai
 
 
 class GreedyAI(object):

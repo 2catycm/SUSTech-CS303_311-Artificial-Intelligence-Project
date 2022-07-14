@@ -201,7 +201,7 @@ def iterative_deepening_search(start_time, time_out, memory_out):
 
 
 # @njit
-def alpha_beta_search(chessboard, current_color, remaining_depth=6, alphas=np.array([-np.inf, -np.inf]),
+def alpha_beta_search(chessboard, current_color, remaining_depth=8, alphas=np.array([-np.inf, -np.inf]),
                       hash_table=None):
     """
 

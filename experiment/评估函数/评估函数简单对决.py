@@ -1,3 +1,5 @@
+import time
+
 from simulator import Simulator
 from greedy_ai import GreedyAI
 import experiment.old_ai.AI as ai
@@ -151,7 +153,7 @@ def alpha_beta_search(a, p, depth=3):
 
 
 if __name__ == '__main__':
-
+    start_time = time.time()
     # greedy_functions = [middle_action_first, middle_action_first]
     # greedy_functions = [middle_action_first, eat_less_first, become_less_first]
     # greedy_functions = [middle_action_first, eat_less_first, become_less_first, alpha_beta_search]
@@ -185,4 +187,5 @@ if __name__ == '__main__':
 
     print(map(lambda x:x.__name__, greedy_functions))
     print(scores)
+    print(time.time()-start_time)
     # print(alpha_beta_goes_to_the_end)  # depth为2 时， 8/6， 每场1.5次搜索到结尾

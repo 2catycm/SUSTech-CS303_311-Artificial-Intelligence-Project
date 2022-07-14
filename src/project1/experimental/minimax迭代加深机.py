@@ -195,6 +195,20 @@ def hash_board(chessboard):
     # return np.array2string(chessboard)
 
 
+# def compute_breadth(rounds, depth):
+#     avg_breath = [0., 0., 0., 0., 4., 3.,
+#      4.625, 5.05, 5.75, 6.075, 7.125, 7.45,
+#      8.05, 8.125, 8.975, 8.925, 9.1, 9.975,
+#      9.725, 10.35, 11., 10.575, 11.525, 11.275,
+#      11.4, 12.15, 11.525, 11.85, 12.275, 11.975,
+#      12.425, 11.725, 12.9, 12.25, 12.975, 12.375,
+#      12.75, 11.725, 12.175, 11.575, 12.075, 11.125,
+#      11.6, 10.85, 10.75, 10.125, 10.5, 9.05,
+#      9.5, 8.5, 8.475, 7.65, 7.5, 6.675,
+#      6.95, 5.55, 5.3, 4.46341463, 4.15, 3.475,
+#      2.825, 2.11904762, 1.43478261, 0.70175439, 0.]
+
+
 # @njit
 def iterative_deepening_search(chessboard, current_color, time_out, memory_out=1048576):
     """
@@ -223,14 +237,15 @@ def iterative_deepening_search(chessboard, current_color, time_out, memory_out=1
                                             current_depth)
             current_depth += 1
             time_used = time.time() - start_time
+        print(f"tried depth of {current_depth}, there is still {time_out - time_used}s remained. ")
         while value != 1:
             value, move = alpha_beta_search(hash_table, start_time, time_out, memory_out, chessboard, current_color,
                                             current_depth)
             current_depth += 1
-            print(current_depth, "Value is 1! ")
-            return value, move
+        print(f"Reached a search depth of {current_depth}")
+        print("Value is 1! ")
     except TimeoutError:
-        print(current_depth)
+        print(f"Reached a search depth of {current_depth}")
     finally:
         return value, move
 
@@ -305,7 +320,7 @@ def alpha_beta_search(hash_table, start_time, time_out, memory_out, chessboard, 
 
     if remaining_depth <= 1:  # 比如要求搜索1层，就是直接对max节点的所有邻接节点排序返回最大的。
         v = value_of_positions(new_chessboards[0], current_color)
-        if v==1:
+        if v == 1:
             print("examine this!")
         return value_of_positions(new_chessboards[0], current_color), acts[0]  # 评价永远是根据我方的棋盘
 

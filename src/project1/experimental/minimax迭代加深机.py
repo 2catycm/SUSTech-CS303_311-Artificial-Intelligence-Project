@@ -231,6 +231,7 @@ def iterative_deepening_search(chessboard, current_color, time_out, memory_out=1
             return value, move
     except TimeoutError:
         print(current_depth)
+    finally:
         return value, move
 
 
@@ -303,6 +304,9 @@ def alpha_beta_search(hash_table, start_time, time_out, memory_out, chessboard, 
     insertion_sort(acts, new_chessboards, current_color, hash_table)
 
     if remaining_depth <= 1:  # 比如要求搜索1层，就是直接对max节点的所有邻接节点排序返回最大的。
+        v = value_of_positions(new_chessboards[0], current_color)
+        if v==1:
+            print("examine this!")
         return value_of_positions(new_chessboards[0], current_color), acts[0]  # 评价永远是根据我方的棋盘
 
     value, move = -np.inf, None  # 写在一起。每个节点都尝试让自己的价值最大化

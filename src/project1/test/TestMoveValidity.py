@@ -55,6 +55,13 @@ class TestMoveValidity(unittest.TestCase):
         print(acts)
         # assert (acts == list(map(np.array, [(6, 0), (6, 1), (7, 0)]))).all()
 
+    def test_ids_no_bug(self):
+        self.ai = experiment_ai.AI(self.chessboard_size, COLOR_WHITE, np.inf)
+        chessboard = np.array(
+            [[-1, 1, 1, 1, 1, 1, 1, -1, ], [-1, 1, 1, 1, 1, 1, 1, -1, ], [-1, 1, -1, 1, -1, 1, 1, -1, ],
+             [-1, 1, -1, 1, 1, -1, 1, -1, ], [-1, 1, 1, -1, -1, -1, 1, -1, ], [-1, -1, -1, -1, -1, -1, 1, -1, ],
+             [0, 0, -1, -1, -1, 1, 1, -1, ], [0, -1, -1, -1, -1, -1, 1, -1, ]])
+        self.ai.go(chessboard)
 
 if __name__ == '__main__':
     unittest.main()

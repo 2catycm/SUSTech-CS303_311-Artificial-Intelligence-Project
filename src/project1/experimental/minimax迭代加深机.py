@@ -112,6 +112,12 @@ def min_max_normalized_value(lower_bound, upper_bound, value):
     return (value - lower_bound) / (upper_bound - lower_bound)
 
 
+@njit(inline='always')
+def symmetry_normalized_value(lower_bound, upper_bound, value):
+    # 放缩到 [-1, 1] 范围，好处是满足 对手对称性
+    return 2 * (value - lower_bound) / (upper_bound - lower_bound) - 1
+
+
 Vars = [9, 10, 18, 5, 19, 15, 18, 13, 8, 3]
 
 
@@ -139,27 +145,114 @@ def value_of_positions(chessboard, color):
     # 假设我方是黑方，颜色为-1， 我不愿意拿到任何棋子（反向黑白棋）
     # (chessboard * PVT).sum() 是 对方拿到的子-我拿到的棋子 , 因为对方颜色是1。 我希望这个值越大越好
     # 但是不巧我是-1色，所以我要乘个-1，因为贪心函数也认为value_of_positions是对color而言越大约好的
-    return min_max_normalized_value(-PVT_max, PVT_max, COLOR_BLACK * color * ((chessboard * PVT).sum()))
+    return symmetry_normalized_value(-PVT_max, PVT_max, COLOR_BLACK * color * ((chessboard * PVT).sum()))
+
+
+# don't change the class name
+class AI(object):
+    def __init__(self, local_chessboard_size, color, time_out):
+        global chessboard_size
+        chessboard_size = self.chessboard_size = local_chessboard_size
+        self.color = color  # 黑或白
+        self.time_out = time_out * 0.97  # 防止时间波动导致超时
+        self.candidate_list = []
+        self.rounds = 4 if color == COLOR_BLACK else 5
+
+    def go(self, chessboard):
+        # Clear candidate_list, must do this step
+        self.candidate_list.clear()
+        numpy_list = actions(chessboard, self.color)
+        self.candidate_list = list(map(index2, numpy_list))
+        if len(self.candidate_list) == 0 or len(self.candidate_list) == 1:  # 不要self.rounds<=5， 趁着第一回合jit一下
+            print("Only one or no action. ")
+            return
+        value, decision = iterative_deepening_search(chessboard, self.color, self.time_out)
+        if decision is not None:
+            self.execute_decision(decision)
+        self.rounds += 1
+
+    def execute_decision(self, decision):
+        self.candidate_list.append(index2(decision))
+
+
+from numba.typed import Dict
+from numba import types
 
 
 @njit
 def hash_board(chessboard):
-    # res = 0
+    res0, res1 = types.uint64(0), types.uint64(0)
+    c = chessboard.reshape(2, max_piece_cnt // 2)
+    for i in c[0]:
+        res0 = 3 * res0 + types.uint64(i + 1)
+    for i in c[1]:
+        res1 = 3 * res1 + types.uint64(i + 1)
+    return res0, res1  # 为了避免超过int64。
+    # res = ""
     # for i in chessboard.reshape(1, max_piece_cnt):
-    #     res = 3*res+(i+1)
-    # return res # 太大了，超过int64
-    return str(chessboard)
+    #     res+=(i+1)
+    # return res
+    # return np.array2string(chessboard)
+
+
+# @njit
+def iterative_deepening_search(chessboard, current_color, time_out, memory_out=1048576):
+    """
+    先搜低层的，保存值。如果剪枝了，下一次把没有值的放在最后，有值的放在前面。
+    :param start_time:
+    :param time_out:
+    :param memory_out: 表示最多存多少个节点。1048576为1M节点。
+    :return:
+    """
+    assumed_breadth = 8
+    current_depth = 2
+
+    start_time, time_used = time.time(), 0
+    # hash_table = Dict.empty(
+    #     key_type=types.unicode_type,
+    #     value_type=types.float64[:]  # 表示顺序？
+    # )
+    hash_table = Dict.empty(
+        key_type=types.UniTuple(types.uint64, 2),
+        value_type=types.float64  # 表示节点的价值。 如果哈希表有值，优先使用该值排序
+    )  # 如果有LRU，可以把继承上一次的table
+    value, move = -np.inf, None
+    try:
+        while time_used * assumed_breadth < time_out:  # 铁定合法的
+            value, move = alpha_beta_search(hash_table, start_time, time_out, memory_out, chessboard, current_color,
+                                            current_depth)
+            current_depth += 1
+            time_used = time.time() - start_time
+        while value != 1:
+            value, move = alpha_beta_search(hash_table, start_time, time_out, memory_out, chessboard, current_color,
+                                            current_depth)
+            current_depth += 1
+            print(current_depth, "Value is 1! ")
+            return value, move
+    except TimeoutError:
+        print(current_depth)
+        return value, move
 
 
 @njit
-def insertion_sort(acts, new_chessboards, current_color):
+def insertion_sort(acts, new_chessboards, current_color, hash_table):
     """
     对 new_chessboards 按照简单评估函数，根据当前颜色的胜率进行从大到小排序。
     :param acts: 相应的action也要一起排序. 要求是list, 里面是np.array
     :param current_color: 当前的阵营。
     :param new_chessboards: 要排序的棋盘布局
     """
-    new_chessboards_values = [value_of_positions(c, current_color) for c in new_chessboards]
+    new_chessboards_values = []
+    for c in new_chessboards:
+        v = hash_table.get(hash_board(c))
+        if v is None:
+            new_chessboards_values.append(value_of_positions(c, current_color))
+        else:
+            # *current_color：存的是后是在存者视角下的优秀值*存者颜色，取的时候如果与存者颜色相等，就会抵消，否则会取反
+            # 这种方法前提是评估函数具有正反对称性
+            # +2 有哈希表的时候优先使用哈希表。如果没有，应该是被淘汰了。
+            new_chessboards_values.append(v * current_color + 2)
+
     for i in range(1, len(new_chessboards)):
         pre_index = i - 1
         current_c, current_a = new_chessboards[i], acts[i]
@@ -172,83 +265,42 @@ def insertion_sort(acts, new_chessboards, current_color):
         acts[pre_index + 1] = current_a
 
 
-# don't change the class name
-class AI(object):
-    def __init__(self, local_chessboard_size, color, time_out):
-        global chessboard_size
-        chessboard_size = self.chessboard_size = local_chessboard_size
-        self.color = color  # 黑或白
-        self.time_out = time_out * 0.98  # 防止时间波动导致超时
-        self.candidate_list = []
-        self.rounds = 4 if color == COLOR_BLACK else 5
-
-    def go(self, chessboard):
-        # Clear candidate_list, must do this step
-        self.candidate_list.clear()
-        numpy_list = actions(chessboard, self.color)
-        self.candidate_list = list(map(index2, numpy_list))
-        if len(self.candidate_list) == 0 or len(self.candidate_list) == 1:
-            return
-        value, decision = alpha_beta_search(chessboard, self.color)
-        self.execute_decision(decision)
-        self.rounds += 1
-
-    def execute_decision(self, decision):
-        self.candidate_list.append(index2(decision))
-
-
-from numba.typed import Dict
-from numba import types
-
-
 # @njit
-def iterative_deepening_search(start_time, time_out, memory_out=1048576):
+def alpha_beta_search(hash_table, start_time, time_out, memory_out, chessboard, current_color, remaining_depth=6,
+                      alphas=np.array([-np.inf, -np.inf])):
     """
-    先搜低层的，保存值。如果剪枝了，下一次把没有值的放在最后，有值的放在前面。
+
+    :param hash_table: Dict.empty(key_type=types.unicode_type, value_type=types.float64[:])
     :param start_time:
     :param time_out:
-    :param memory_out: 表示最多存多少个节点。1048576为1M节点。
-    :return:
-    """
-    assumed_breadth = 8
-    current_depth = 2
-
-    start_time, time_used = time.time(), 0
-    hash_table = Dict.empty(
-        key_type=types.unicode_type,
-        value_type=types.float64[:]  # 表示节点的价值。 如果哈希表有值，优先使用该值排序
-    )
-    while time_used * assumed_breadth < time_out:  # 铁定合法的
-
-        time_used = time.time() - start_time
-
-
-@njit
-def alpha_beta_search(chessboard, current_color, remaining_depth=6, alphas=np.array([-np.inf, -np.inf]),
-                      hash_table: Dict = None):
-    """
+    :param memory_out:
 
     :param chessboard:
     :param current_color:
     :param remaining_depth: 0 表示 直接对节点估值，不合法。 1表示一层贪心。 根据时间资源和回合数，请合理分配搜索深度。目前知道10层全回合OK的
     :param alphas: 0:到目前为止，路径上发现的 color=-1这个agent 的最佳选择值
                   1:到目前为止，路径上发现的 color= 1这个agent 的最佳选择值
-    :param hash_table:
     :return: 返回对于chessboard,color这个节点，它最大的选择值是多少，以及它选择了哪个子节点。
     """
+    if time.time() - start_time >= time_out:
+        raise TimeoutError("Too deep, 速回！")
     alphas = alphas.copy()  # 防止修改上面的alphas
     if is_terminal(chessboard):
         utility = current_color * get_winner(chessboard)  # winner的颜色和我相等，就是1（颜色的平方性质）， 和我的颜色不等，就是-1.
-        return min_max_normalized_value(-1, 1, utility), None  # 满足截断性。由于其他价值函数也归一化了，0和1就是最小值和最大值
+        return symmetry_normalized_value(-1, 1, utility), None  # 满足截断性。由于其他价值函数也归一化了，-1和1就是最小值和最大值。 满足对手对称性。
 
     acts = typed.List(actions(chessboard, current_color))
     if len(acts) == 0:
         # 只能选择跳过这个action，value为对方的value
-        value, move = alpha_beta_search(chessboard, -current_color, remaining_depth - 1, alphas)
-        return -value, None  # 对手的值是和我反的。 我方没有action可以做。
+        value, move = alpha_beta_search(hash_table, start_time, time_out, memory_out, chessboard, -current_color,
+                                        remaining_depth - 1, alphas)
+        value = -value
+        if len(hash_table) < memory_out:
+            hash_table[hash_board(chessboard)] = value * current_color
+        return value, None  # 对手的值是和我反的。 我方没有action可以做。
     new_chessboards = typed.List(
         [updated_chessboard(chessboard, current_color, a) for a in acts])  # 用最多10倍内存换一半时间（排序和实际操作共用结果）
-    insertion_sort(acts, new_chessboards, current_color)
+    insertion_sort(acts, new_chessboards, current_color, hash_table)
 
     if remaining_depth <= 1:  # 比如要求搜索1层，就是直接对max节点的所有邻接节点排序返回最大的。
         return value_of_positions(new_chessboards[0], current_color), acts[0]  # 评价永远是根据我方的棋盘
@@ -258,12 +310,14 @@ def alpha_beta_search(chessboard, current_color, remaining_depth=6, alphas=np.ar
     for i, new_chessboard in enumerate(new_chessboards):
         action = acts[i]
 
-        new_value, t = alpha_beta_search(new_chessboard, -current_color, remaining_depth - 1, alphas)
+        new_value, t = alpha_beta_search(hash_table, start_time, time_out, memory_out, new_chessboard, -current_color,
+                                         remaining_depth - 1, alphas)
         new_value = -new_value
+        if len(hash_table) < memory_out:
+            hash_table[hash_board(new_chessboard)] = new_value * current_color
 
         if new_value > value:
             value, move = new_value, action
-
             alphas[this_color_idx] = max(alphas[this_color_idx], value)
         # 另一种颜色的某一个节点已经到达了c = -beta的水平，低于c的都不接受。
         # 而我这个节点，至少可以达到v的水平。

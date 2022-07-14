@@ -46,7 +46,8 @@ while True:
             winner = simulator.quick_run(no_print=False)
             # winner = simulator.quick_run(no_print=True)
         except Exception as e:
-            print(e)
+            print("有错误")
+            raise e
         else:
             if winner != i_color:
                 print("loss")

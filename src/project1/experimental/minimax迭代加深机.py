@@ -116,7 +116,7 @@ Vars = [9, 10, 18, 5, 19, 15, 18, 13, 8, 3]
 
 
 @njit
-def get_PVT_and_max(Vars:np.ndarray):  # 10个参数
+def get_PVT_and_max(Vars: np.ndarray):  # 10个参数
     corn, c, cc, ccc, x, xc, xcc, xx, xxc, xxx = Vars
     PVT = np.array(
         [[corn, c, cc, ccc, ccc, cc, c, corn],
@@ -144,7 +144,11 @@ def value_of_positions(chessboard, color):
 
 @njit
 def hash_board(chessboard):
-    return hash(str(chessboard))
+    # res = 0
+    # for i in chessboard.reshape(1, max_piece_cnt):
+    #     res = 3*res+(i+1)
+    # return res # 太大了，超过int64
+    return str(chessboard)
 
 
 @njit
@@ -175,7 +179,6 @@ class AI(object):
         chessboard_size = self.chessboard_size = local_chessboard_size
         self.color = color  # 黑或白
         self.time_out = time_out * 0.98  # 防止时间波动导致超时
-        self.start_time = None
         self.candidate_list = []
         self.rounds = 4 if color == COLOR_BLACK else 5
 
@@ -186,7 +189,6 @@ class AI(object):
         self.candidate_list = list(map(index2, numpy_list))
         if len(self.candidate_list) == 0 or len(self.candidate_list) == 1:
             return
-        self.start_time = time.time()
         value, decision = alpha_beta_search(chessboard, self.color)
         self.execute_decision(decision)
         self.rounds += 1
@@ -195,14 +197,35 @@ class AI(object):
         self.candidate_list.append(index2(decision))
 
 
-def iterative_deepening_search(start_time, time_out, memory_out):
-    current_depth = 2
-    hash_table = {}
+from numba.typed import Dict
+from numba import types
 
 
 # @njit
-def alpha_beta_search(chessboard, current_color, remaining_depth=8, alphas=np.array([-np.inf, -np.inf]),
-                      hash_table=None):
+def iterative_deepening_search(start_time, time_out, memory_out=1048576):
+    """
+    先搜低层的，保存值。如果剪枝了，下一次把没有值的放在最后，有值的放在前面。
+    :param start_time:
+    :param time_out:
+    :param memory_out: 表示最多存多少个节点。1048576为1M节点。
+    :return:
+    """
+    assumed_breadth = 8
+    current_depth = 2
+
+    start_time, time_used = time.time(), 0
+    hash_table = Dict.empty(
+        key_type=types.unicode_type,
+        value_type=types.float64[:]  # 表示节点的价值。 如果哈希表有值，优先使用该值排序
+    )
+    while time_used * assumed_breadth < time_out:  # 铁定合法的
+
+        time_used = time.time() - start_time
+
+
+@njit
+def alpha_beta_search(chessboard, current_color, remaining_depth=6, alphas=np.array([-np.inf, -np.inf]),
+                      hash_table: Dict = None):
     """
 
     :param chessboard:
@@ -223,7 +246,8 @@ def alpha_beta_search(chessboard, current_color, remaining_depth=8, alphas=np.ar
         # 只能选择跳过这个action，value为对方的value
         value, move = alpha_beta_search(chessboard, -current_color, remaining_depth - 1, alphas)
         return -value, None  # 对手的值是和我反的。 我方没有action可以做。
-    new_chessboards = typed.List([updated_chessboard(chessboard, current_color, a) for a in acts])  # 用最多10倍内存换一半时间（排序和实际操作共用结果）
+    new_chessboards = typed.List(
+        [updated_chessboard(chessboard, current_color, a) for a in acts])  # 用最多10倍内存换一半时间（排序和实际操作共用结果）
     insertion_sort(acts, new_chessboards, current_color)
 
     if remaining_depth <= 1:  # 比如要求搜索1层，就是直接对max节点的所有邻接节点排序返回最大的。

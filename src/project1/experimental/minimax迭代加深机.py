@@ -1,5 +1,5 @@
 import numpy as np
-from numba import njit
+from numba import njit, typed
 from numba import prange
 import random
 import time
@@ -201,7 +201,7 @@ def iterative_deepening_search(start_time, time_out, memory_out):
 
 
 # @njit
-def alpha_beta_search(chessboard, current_color, remaining_depth=100, alphas=np.array([-np.inf, -np.inf]),
+def alpha_beta_search(chessboard, current_color, remaining_depth=8, alphas=np.array([-np.inf, -np.inf]),
                       hash_table=None):
     """
 
@@ -218,12 +218,12 @@ def alpha_beta_search(chessboard, current_color, remaining_depth=100, alphas=np.
         utility = current_color * get_winner(chessboard)  # winner的颜色和我相等，就是1（颜色的平方性质）， 和我的颜色不等，就是-1.
         return min_max_normalized_value(-1, 1, utility), None  # 满足截断性。由于其他价值函数也归一化了，0和1就是最小值和最大值
 
-    acts = actions(chessboard, current_color)
+    acts = typed.List(actions(chessboard, current_color))
     if len(acts) == 0:
         # 只能选择跳过这个action，value为对方的value
         value, move = alpha_beta_search(chessboard, -current_color, remaining_depth - 1, alphas)
         return -value, None  # 对手的值是和我反的。 我方没有action可以做。
-    new_chessboards = [updated_chessboard(chessboard, current_color, a) for a in acts]  # 用最多10倍内存换一半时间（排序和实际操作共用结果）
+    new_chessboards = typed.List([updated_chessboard(chessboard, current_color, a) for a in acts])  # 用最多10倍内存换一半时间（排序和实际操作共用结果）
     insertion_sort(acts, new_chessboards, current_color)
 
     if remaining_depth <= 1:  # 比如要求搜索1层，就是直接对max节点的所有邻接节点排序返回最大的。
@@ -241,6 +241,6 @@ def alpha_beta_search(chessboard, current_color, remaining_depth=100, alphas=np.
             value, move = new_value, action
 
             alphas[this_color_idx] = max(alphas[this_color_idx], value)
-        if value >= alphas[other_color_idx]:  # 这是beta剪枝, 因为min的某个祖先的要求，这个max被其父min剪掉。
+        if value <= alphas[other_color_idx]:  # 这是beta剪枝, 因为min的某个祖先的要求，这个max被其父min剪掉。
             return value, move
     return value, move

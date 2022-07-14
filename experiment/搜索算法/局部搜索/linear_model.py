@@ -48,10 +48,10 @@ def neighbours(Vars, delta=1):
 
 @njit
 def neighbours_continuous(Vars: np.ndarray, lb=-1, ub=1, scale=0.1, times=100):
-    res = []
+    res = [Vars]
     for i in range(times):
         noise = np.random.normal(loc=0, scale=scale, size=(len(Vars)))
-        res.append(np.clip(Vars + res, lb, ub))
+        res.append(np.clip(Vars + noise, lb, ub))
     return res
 
 

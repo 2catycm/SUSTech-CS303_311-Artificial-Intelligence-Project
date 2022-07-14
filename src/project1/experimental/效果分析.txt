@@ -1,0 +1,4 @@
+迭代加深机
+- 通过了njit编译，TestMoveValidity测试
+- 后手被随机打败的概率高，怀疑有颜色bug
+- 6层

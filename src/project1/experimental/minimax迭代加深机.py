@@ -241,6 +241,10 @@ def alpha_beta_search(chessboard, current_color, remaining_depth=6, alphas=np.ar
             value, move = new_value, action
 
             alphas[this_color_idx] = max(alphas[this_color_idx], value)
-        if value <= alphas[other_color_idx]:  # 这是beta剪枝, 因为min的某个祖先的要求，这个max被其父min剪掉。
+        # 另一种颜色的某一个节点已经到达了c = -beta的水平，低于c的都不接受。
+        # 而我这个节点，至少可以达到v的水平。
+        # 在那个对手节点看来，我至多会选择-v， 如果它自己的c已经比我这个-v大了，
+        # 他就不会考虑我，我被剪枝，随便返回一个我的值和选择。
+        if -value <= alphas[other_color_idx]:
             return value, move
     return value, move

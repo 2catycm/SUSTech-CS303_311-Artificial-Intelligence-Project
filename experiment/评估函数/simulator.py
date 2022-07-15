@@ -28,6 +28,7 @@ class Simulator:
         self.rounds = 4
 
     def quick_run(self, accountants=None, no_print=False):
+        print("spin once!")
         if accountants is None:
             accountants = []
         self.rounds = 4

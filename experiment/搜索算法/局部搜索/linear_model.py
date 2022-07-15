@@ -36,13 +36,17 @@ def value_of_positions(chessboard, color, PVT, PVT_max):
 #         super().set_search_depth(6)
 #         super().set_evaluator(value_of_positions)
 
+import random
 
-def neighbours(Vars, delta=1):
-    for i in range(10):
-        for j in [-delta, 1]:
+
+def neighbours(Vars, delta, lb, ub, times=8):
+    for i in random.sample(range(len(Vars)), times):
+        for j in [-delta, +delta]:
             new_vars = Vars.copy()
-            new_vars[i] += j
-            if 0 <= new_vars[i] <= 10:
+            mask = np.zeros(len(Vars))
+            mask[i] = 1
+            new_vars += j * mask
+            if (lb <= new_vars).all() and (new_vars<= ub).all():
                 yield new_vars
 
 
@@ -56,11 +60,25 @@ def neighbours_continuous(Vars: np.ndarray, lb=-1, ub=1, scale=0.1, times=100):
 
 
 if __name__ == '__main__':
-    Vars = np.array([1, 8, 3, 7, 3, 2, 5, 6, 6, 4])
-    PVT, PVT_max = get_PVT_and_max(Vars)
-    print(value_of_positions(np.ones((8, 8)), 1, PVT, PVT_max))  # 我是白方，全是白子
-    print(value_of_positions(-np.ones((8, 8)), 1, PVT, PVT_max))  # 我是白方，全是黑子
-    Vars = np.ones(10)
-    PVT, PVT_max = get_PVT_and_max(Vars)
-    print(value_of_positions(PVT, 1, PVT, PVT_max))  # 我是白方，全是白子
-    print(value_of_positions(PVT, -1, PVT, PVT_max))  # 我是黑方，全是白子
+    dim = 16
+    # varTypes = np.ones(dim) # 整数
+    varTypes = np.zeros(dim)  # 实数
+    lb = np.ones(dim) * -20
+    ub = np.ones(dim) * 20
+    lb[10:] = 0
+    ub[10:] = 1
+    delta = np.ones(dim)
+    delta[10:] = 0.1
+    Vars = np.array([3, 19, 10, 5,18, 10, 10,10, 8,3, 0.7, 0.1, 0.2,0.6, 0.2, 0.2])
+    print(list(neighbours(Vars, delta, lb, ub, 4)))
+    print(list(neighbours(Vars, delta, lb, ub, 8)))
+
+
+    # Vars = np.array([1, 8, 3, 7, 3, 2, 5, 6, 6, 4])
+    # PVT, PVT_max = get_PVT_and_max(Vars)
+    # print(value_of_positions(np.ones((8, 8)), 1, PVT, PVT_max))  # 我是白方，全是白子
+    # print(value_of_positions(-np.ones((8, 8)), 1, PVT, PVT_max))  # 我是白方，全是黑子
+    # Vars = np.ones(10)
+    # PVT, PVT_max = get_PVT_and_max(Vars)
+    # print(value_of_positions(PVT, 1, PVT, PVT_max))  # 我是白方，全是白子
+    # print(value_of_positions(PVT, -1, PVT, PVT_max))  # 我是黑方，全是白子

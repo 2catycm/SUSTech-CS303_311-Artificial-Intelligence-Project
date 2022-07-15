@@ -118,13 +118,13 @@ def symmetry_normalized_value(lower_bound, upper_bound, value):
     return 2 * (value - lower_bound) / (upper_bound - lower_bound) - 1
 
 
-Vars = [9, 10, 18, 5, 19, 15, 18, 13, 8, 3]
-# Vars = np.array([3, 19, 10, 5,
-#                  18, 10, 10,
-#                  10, 8,
-#                  3,
-#                  0.7, 0.1, 0.2,
-#                  0.6, 0.2, 0.2])
+# Vars = [9, 10, 18, 5, 19, 15, 18, 13, 8, 3]
+Vars = np.array([3, 19, 10, 5,
+                 18, 10, 10,
+                 10, 8,
+                 3,
+                 0.7, 0.1, 0.2,
+                 0.6, 0.2, 0.2])
 
 
 @njit
@@ -195,17 +195,19 @@ def value_of_edge_stability(chessboard, color):
     return symmetry_normalized_value(-28, 28, color * COLOR_BLACK * value)  # 如果全是白方的稳定子，算出来28，对黑方有利，几乎必胜。
 
 
+# @njit
+# def 组合策略1(chessboard, color, rounds):
+#     return value_of_positions(chessboard, color, rounds)  # 回退到旧版的方法
+
 @njit
 def 组合策略1(chessboard, color, rounds):
-    return value_of_positions(chessboard, color, rounds)
-# def 组合策略1(chessboard, color, rounds):
-#     v_position = value_of_positions(chessboard, color)
-#     v_mobility = value_of_mobility(chessboard, color)
-#     v_edge_sta = value_of_edge_stability(chessboard, color)
-#     if rounds <= 24:
-#         return v_position * Vars[10] + v_mobility * Vars[11] + v_edge_sta * Vars[12]
-#     else:
-#         return v_position * Vars[13] + v_mobility * Vars[14] + v_edge_sta * Vars[15]
+    v_position = value_of_positions(chessboard, color)
+    v_mobility = value_of_mobility(chessboard, color)
+    v_edge_sta = value_of_edge_stability(chessboard, color)
+    if rounds <= 24:
+        return v_position * Vars[10] + v_mobility * Vars[11] + v_edge_sta * Vars[12]
+    else:
+        return v_position * Vars[13] + v_mobility * Vars[14] + v_edge_sta * Vars[15]
 
 
 # don't change the class name

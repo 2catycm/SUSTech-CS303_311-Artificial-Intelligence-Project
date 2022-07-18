@@ -588,7 +588,20 @@ a\_b\_nodes \approx \sqrt{b}^d \approx\sqrt{8.093}^8=4,289.8110
 $$
 The average node number is here, however, is **55950.05**. So big! Don't panic! This is not because our evaluation function is bad. Rather, this is because the coefficient of the time complexity is unknown to us. 
 
-**Conclusion.** The experiment **supports the hypothesis** that the effective breadth is squarely rooted. And statistics show that the nodes is dropped down by $18402478.675/55950.05 = 328.909$ times. A big improvement! 
+In other words, $nodes = h\cdot\sqrt{b}^d+b$ . And we shall see if different depth experiments gives us a acceptable($R^2$) linear regression for that formula. 
+
+| depth | hypothesis            | actually | times                                   |
+| ----- | --------------------- | -------- | --------------------------------------- |
+| 8     | $4,289.8110\cdot h+b$ | 55950.05 | $55950.05/296.35 = 188.79\approx295.35$ |
+| 4     | $65.4966\cdot h+b$    | 296.35   | $296.35/14.55 = 20.37\approx14.55$      |
+| 2     | $1\cdot h+b$          | 14.55    |                                         |
+
+![linear](P_Project1.assets/linear-16581696095186.png)
+
+**Conclusion.** 
+
+1. The experiment **supports the hypothesis** that the effective breadth is squarely rooted. The coefficients (h, b) for the time complexity is approximately (0.07629278861048339, 21.33424487500785). 
+2. Statistics show that the nodes is dropped down by $18402478.675/55950.05 = 328.909$ times. A big improvement! 
 
 #### 估计胜者特征：平均占角数与稳定子数
 

@@ -48,9 +48,9 @@ Besides problem, we also need to formulate the program. The program for this pro
 
 Now we formulate P, E, A, S and G respectively. 
 
-#### Enviroment E, Actuators A and Sensors S
+#### Environment E, Actuators A and Sensors S
 
-Enviroment E, Actuators A and Sensors S are defined by the following notations：
+Environment E, Actuators A and Sensors S are defined by the following notations：
 
 |        Notation         | Interpretation                                               | Restrictions                                                 |
 | :---------------------: | ------------------------------------------------------------ | ------------------------------------------------------------ |
@@ -121,7 +121,7 @@ $$
 Perf(G_i) = 	SCORES(G_{0:29})[i] / sum(SCORES(G_{0:29}))
 $$
 
-> Interlude: 概念辨析——任务环境(Task Enviroment)和智能体（Agent）的概念的区别与联系(cont.)
+> Interlude: 概念辨析——任务环境(Task Environment)和智能体（Agent）的概念的区别与联系(续)
 >
 > 任务环境的Performance和Agent内部的Performance element的区别与联系？
 >
@@ -131,7 +131,7 @@ $$
 > - 以本次Project为例，任务环境的Performance是指截止日期到时，我们的程序与同学程序两两对打胜利的次数。然而这个Performance的衡量在平时我们改进自己程序的时候是不可用的（或者计算代价很大）。
 > - 这样的Performance是问题本身（任务环境）的要求，是我们的目标，但是不具备可计算性。
 > - 而我们为了让Performance具有可计算性，在本地提出**性能模型（Performance Model）**，通过简化假设让Performance的计算具有可能，从而改进我们自己的程序，这就是Learning Agent的Performance element. 
-> - 如果我们的模型假设合理，模型建立准确，就可以达到本地改进后实际上也能在OJ上拿到更多分数的目的。本次Project我提出了三种有效的性能模型，请见3.3.1 。
+> - 如果我们的模型假设合理，模型建立准确，就可以达到本地改进后实际上也能在OJ上拿到更多分数的目的。本次Project我提出了三种有效的性能模型，请见3.3.2 。
 
 #### Nature of the task environment
 
@@ -251,7 +251,7 @@ Now we consider the game to end at depth 3. The zero-depth estimation of nodes t
 
 Therefore, the two-depth estimation performs poorer than the one-depth estimation in this case, which implies that deeper search doesn't imply better performance.
 
-**Definition 2. ** *True Minimax Function* is defined as
+**Definition 2. ** *The Accurate or True Minimax Function* is defined as
 $$
 mv(s, c) = \hat{mv}_{n^2, UTILITY}(s, c)
 $$
@@ -280,22 +280,50 @@ After having a literature review and doing a formulation, I find these problems 
 Therfore, our genearl workflow are as follows:
 
 ```mermaid
-flowchart LR
+flowchart TD
 
 subgraph A ["模型准备"]
+ direction TB
  a1(文献综述)
  a2(定理推导)
- a1---a2
+ a3("同学讨论、请教老师和学助")
+ 
+ a1---a2---a3
 end
 subgraph B ["模型假设"]
- b1
+direction TB
+ 	b1(评价模型)
+	b2(性能模型)
+	b3(搜索模型)
+	b1---b2---b3
 end
 subgraph C ["模型求解"]
-c1
+direction LR
+subgraph c1["软件基础架构开发"]
+	direction TB
+	c11(本地的高速模拟器)
+	c12(本地的游戏GUI界面)
+	c11---c12
+end
+subgraph c2["AI模型实现"]
+	direction TB
+	c21(评价模型)
+	c22(性能模型)
+	c23(搜索模型)
+	c21---c22---c23
+end
+subgraph c3["本地的软件测试"]
+	direction TB
+	c31("烟雾测试（设计的基础测试样例下可运行）")
+	c32("回归测试（新算法不比旧算法弱\基础软件架构速度没有变慢）")
+	c31---c32
+end
+
+c1-->c2-->c3
 end
 
 subgraph D ["模型分析"]
-    direction LR
+    direction TB
 	d1(发现问题)
 	d2(构想假说)
 	d3(演绎假说)
@@ -307,10 +335,8 @@ subgraph D ["模型分析"]
 	d7(搜索策略有效性实验)
 	d5---d6---d7
 end
-a2-->b1-->c1-->d1
+A-->B-->C-->D-->B
 ```
-
-
 
 ### Hypothesis and assumptions
 
@@ -322,42 +348,98 @@ a2-->b1-->c1-->d1
 >
 > We make this assumption because 
 >
-> - From the perspective of Minimax, the Minimax value for all chessboard states are determined, we estimates it with uncertainty because our lack of computational resource.[^1]If we were able to have computational resource, we surely won't consider action and percept history. Therefore it is reasonable to assume that action is helpless to the estimation of minimax value. 
+> - From the perspective of Minimax, the Minimax value for all chessboard states are determined, **we estimate it with uncertainty because our lack of computational resource.**[^1]**If we were able to have computational resource, we surely won't consider action and percept history.** Therefore it is reasonable to assume that action is helpless to the estimation of minimax value. 
 >
 > - Most papers do so on Reversi.
-> - This assumption makes the evaluation model simplier. 
+> - This assumption makes the evaluation model simpler. 
 
-**Hypothesis 2.** *The deeper, the better.* 
+**Hypothesis 2.** *The deeper, the better.* We assume a good evaluation function doesn't go worse when it reaches a deeper search. 
 
-**Hypothesis 3.** *Don't give up mobility.*
+**Hypothesis 3.** *Don't give up mobility.* Mobility is important and more mobility means better game in Reversi. Then most of my classmates thinks that giving up the mobility means a better game in Reversed Reversi. That opinion is wrong. 
 
- 
+MacGuire points out that if you can achieve a position where you can restrict the  availability of moves to your opponent then you are well on the way to victory.[^9] What he mean by saying this is that you should restrict the mobility of your opponent, in order to force the opponent to place his move at a place he doesn't want, for example the corner. 
+
+Lee and Mahajan has a similar idea that the mobility must have a weight to indicate its importance. [^10]Therefore, the key change for normal to reversed is not from more mobility to less mobility, but from weight of mobility importance of Reversi to weight of mobility  importance of Reversed Reversi
 
 ### Model design
 
+####  Evaluation Model
+
+The evaluation function must conform to three rules, according to AIMA. [^1]
+
+-  The evaluation function must give the same order as the Accurate Minimax Function **at least for the terminated states.**
+- The evaluation function must not compute for a long time.
+- The evaluation function must be related to the win rate.
+
+I partially agree with AIMA's opinions. 
+
+
+
 #### Performance Models
+
+Here four models that measure the performance of the evaluation model are presented. Among them, I proposed model 1, 2, and 3, and model 4 was found in a paper. Since I haven't learnt machine learning in class yet, I only used model 1 and 2 for experiments. 
 
 #####  Performance Model 1: Round Robin First Color in Turn Measure 
 
-#####  Performance Model 2:  Imporved Monte Carlo Win Rate Measure
+A good performance model must at least gives a partial order of what it profiles on. **From Theorem 1. in section 2.2.2, we know that the "beaten relation" is a pretty bad performance model.** Then, how can we measure the performance reliably?
 
-##### Performance Model 3: Minimax Value Loss Measure
+A simple idea that most of my classmates and I could figure out was round robin. Two 
+
+#####  Performance Model 2:  Improved Monte Carlo Win Rate Estimation Measure
+
+
+
+##### Performance Model 3: Structural Minimax Value Loss Measure
+
+We know from Theorem 2 of section 2.2.3 that Accurate Minimax Function is the fixed point of Minimax Estimate Function of any depth. Therefore, the best evaluation function is the Minimax Function. 
+
+Machine learning learns functions from the data. And the Minimax Function is no more than a normal evaluation function that takes chessboard state and color as the inputs and outputs a value, except that its primary definition is recursive. So if we are able to design a Machine Learning Model that fits Minimax Function well, it must be exicting. 
+
+One of the cruxes of the problems is the dataset. We can generate the Minimax value from the last turn of the game and goes back to at most 12 plies if we have 5 seconds; if we had more time, more plies of data would be genearated. However, the data that we don't generate, such as a chessboard at a very beginning round number, will not be learnt by the agent, and thus agent would perform bad in those rounds. After all, even if the model is perfect, data, or the time we have to generate data, limits the performance of the learning agent. 
+
+Another problem is that, how do we define the loss function, i.e. Performance Model? I think the difference of the labeled value and the predicted value is not enough. Instead, we need a Structural Minimax Value Loss Measure that utilize the fixed point nature of the Minimax Function. Structural Minimax Value Loss Measure is computed by
+
+1. The proposed evaluation function estimates n plies of the nodes on a game tree rooted at state.
+2. For every node, there is a true minimax value in our dataset. We compute the loss for every nodes.
+3. We accumulates the loss of all nodes and credit it to the root state. 
 
 ##### Performance Model 4: Search Depth Measure
 
-As we know, a better evaluation function implies a better pruning for alpha-beta search. [^1] So it make sense that **when the search depth goes deeper after using a new evaluation function with the same search method, the new evaluation function is a better estimate of Minimax value**. 
+As we know, a better evaluation function implies a better pruning for alpha-beta search. [^1] So it make sense that **when the search depth goes deeper after using a new evaluation function with the same search method(with alpha-beta search and move sorting), the new evaluation function is a better estimate of Minimax value**. 
 
 Actually, this is one of the performance models used by BILL. Lee & Mahajan argues that **Bayesian learning is instrumental to BILL's playing strength because results showed that it improved BILL's play by two plies of search.** [^10]
 
-#### Evaluation Model
-
-
-
 #### Search Model
+
+##### Iterative Deepening Search For Timing
+
+```pseudocode
+function Double-Alpha-Maximax-Search(state, color, time_out, q) return a value and a move
+	inputs: state in S, color in C: our value is computed on a 
+				chessboard state in the view of color. 
+			time_out in R, maximum allowed time in unit of seconds. 
+			q in R, a parameter used to balance time and search. 
+    current_depth = 2
+    time_out *= q
+    try
+    	do
+    		last_move = move
+    		value, move = Double-Alpha-Maximax-Search(state, color, current_depth, (-1, -1))
+    		current_depth +=1
+    		assumed_breadth = average_breadth(rounds, current_depth) // 宽度表明了多搜一层需要的时间倍数上界。
+    	while(time_used*assumed_breadth < q*time_out or (last_move != move)) and (
+                time_used /q < time_out) and (value!=1)
+    catch Timeout
+    	do nothing
+    end try
+    return value, move
+```
+
+
 
 ##### Double-Alpha Maximax Search
 
-This is an implementation of *Minimax Estimate Function*  $\hat{mv_{d, e}}$ defined in section 2.2.3, with **alpha-beta-pruning**, **move sorting**, and **table lookup.** 
+This is an implementation of *Minimax Estimate Function*  $\hat{mv_{d, e}}$ defined in section 2.2.3, with **alpha-beta-pruning**, **move sorting**, and **table lookup.** In addition, we designed the UTILITY value of terminal state in order to integrate an **end-game optimal search** into the model. 
 
 ```pseudocode
 function Double-Alpha-Maximax-Search(state, color, remaining_depth, alphas) return a value and a move
@@ -365,7 +447,7 @@ function Double-Alpha-Maximax-Search(state, color, remaining_depth, alphas) retu
 			 table, a hash table that maps chessboard to value calculated in the 					last step of iterative deepening search.
 	inputs: state in S, color in C: our value is computed on a 
 				chessboard state in the view of color. 
-			remaining_depth in N*, for convenience, we require remaining_depth 					is at least 1.
+			remaining_depth in N, for convenience, we require remaining_depth 					is at least 1.
 			alphas in [-1,1]^2, a tuple with 2 elements. The 0th is the max available 				value that color -1 can have, The 1th is the max available value 				that color 1 can have. 
             
     if TERMINAL-TEST(state)then 
@@ -404,8 +486,6 @@ function Double-Alpha-Maximax-Search(state, color, remaining_depth, alphas) retu
     end for
 ```
 
-#####  Iterative Deepening Search
-
 
 
 ### Model analysis
@@ -417,25 +497,33 @@ The following experiments were performed under the following environment conditi
 - Systeminfo：AMD Ryzen 7 4800H with Radeon Graphics， Microsoft Windows 11 专业版, RAM 16G
 - Python：Python 3.10.5, Pycharm 2022.1.3 (PE), numpy 1.22.4, numba 0.55.2
 
-### 基于统计的游戏性质估计实验
+### Statistical game nature estimation experiment(基于统计的游戏性质估计实验)
 
-#### 估计平均宽度（行动力）
-
-
-
-#### 估计alpha beta剪枝后n层博弈树的平均大小
-
-##### **Experiment principle and experiment hypothesis.** 
-
-Knuth证明，理想的行棋排序下，alpha beta剪枝能够
-
-研究表明，alpha beta剪枝算法对于井字棋产生的节点数量约为Minimax算法的1/15。[^2]
-
-本实验的目的在于从实验验证Reverse Reversi 的，并且指导迭代加深算法的设计。
-
-##### Experiment Steps
+#### Estimate the average breadth（估计平均行动力）
 
 
+
+#### Estimate the average size of the game tree of n plies after alpha-beta pruning（估计Alpha Beta剪枝后博弈树节点数量）
+
+##### **Experiment principle, experiment hypothesis and experiment purpose.** 
+
+**Principle.**
+
+​		Knuth&Moore proved that, with an ideal move sorting, alpha beta pruning has a time complexity of O($b^{\frac{m}{2}}$). [^1]Research also shows that alpha-beta boosts up the search of Tic-Tac-Tok by 15 times.[^2]
+
+**Hypothesis. Alpha beta pruning drops down the effective branch breadth by two times.** [^1]
+
+**Purpose.** The purpose of this experiment was 
+
+- To see how much times alpha beta pruning do boost up the Reverse Reversi search
+- To verify the hypothesis. 
+- To guide the design of an iterative deepening algorithm.
+
+##### Experiment steps
+
+
+
+##### Experiment results and analysis
 
 
 
@@ -473,7 +561,22 @@ As we said in 4.1.1, one of the best ways to evaluate an RR agents\` rationality
 
 ## Conclusion and discussion
 
+In conclusion, the three models I built have these advantages and disa
 
+| Model             | Advantages                                                   | Disadvantages                                                |
+| ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| Evaluation model  | concise and easy to implement.                               | too less parameters, too less characteristics compared to state-of-the-art Reversed Reversi Programs. |
+| Performance model | Round robin Model is what OJ Performance uses. Random model is reasonable and by Law of large Numbers. | Round robin is limited for accessible players. Random algorithm is too weak even with a end game search. Random algorithm need a long time to reach a acceptable precision. |
+| Search model      | Reasonable timing strategy. Best search depth among my classmates that uses alpha beta search scheme(I reach a average depth of 9 and 12 in the middle game and the end game). | 20% of the time is not used. We can probably run MCTS at the rest of the time in further study. |
+
+Experimental result match my expectation. 
+
+In this project, I  have
+
+- gained a better understaning of the knowledge I learnt in the AI course via my hand-by-hand practice and experiments 
+- learnt practical coding skills of Python programming. 
+
+In further study, I might try to apply new knowledge about machine learning that will be learnt from the next class to implement the idea I talked about in Performance Model 3. 
 
 # References
 

@@ -8,7 +8,7 @@
 
 In this project, we tries to develop a **high-level *Reversed Reversi* program** that are compatible to beat our classmates' programs. **Our purpose is not seeking to prevail over others, but to master the essence of AI system development by learning from and communicating with each other.**
 
- As Kronrod says, computer board game is the "fruit fly in Artificial Intelligence".[^1][^2] This interesting computer game project will definitely provide me with **a better understaning** of the **knowledge I learnt in the AI course** via my **hand-by-hand practice and experiments** in the procedure of accomplishing this project. 
+ As Kronrod says, computer board game is the "fruit fly in Artificial Intelligence".[^1][^2] This interesting computer game project will definitely provide me with **a better understanding** of the **knowledge I learnt in the AI course** via my **hand-by-hand practice and experiments** in the procedure of accomplishing this project. 
 
 ### Problem background
 
@@ -24,7 +24,7 @@ Before we start to develop our own algorithms for Reversed Reversi, it is necess
 
 The first world class Reversi program is *IAGO* developed by Rosenbloom in 1982. This program effectively quantified Reversi maxims into efficient algorithms with adversial search techniques. [^10]Later in 1990, 李开复& Mahajan developed another program called *BILL*, which far surpassed the *IAGO* by introducing dynamic evaluation function based on Bayesian learning. [^10][^2]Although *IAGO* and *BILL* are best computer programs that play Reversi at their times, the top human players were not beaten untill the occurence of the program *Logistello* developed by Buro in 1997.[^1]The main new idea of *Logistello* is that it automatically learns from previous plays[^6][^7]**After that, it is generally acknowledged that humans are no match for computers at Reversi.**[^1] 
 
-In 1997-2006, Andersson developped a practical Reversi program called *WZebra*. It has big opening books, state-of-the-art search algorithms, pattern-based evaluation scheme that can stably run on Windows 2000 to even today's Windows 11 platforms. [^11]While it gains a better performace and stability by applying several techniques of C Programming Launguage, the basic ideas of *WZebra*, however, are no more than *BILL*'s or *Logistello*'s.  
+In 1997-2006, Andersson developed a practical Reversi program called *WZebra*. It has big opening books, state-of-the-art search algorithms, pattern-based evaluation scheme that can stably run on Windows 2000 to even today's Windows 11 platforms. [^11]While it gains a better performance and stability by applying several techniques of C Programming Language, the basic ideas of *WZebra*, however, are no more than *BILL*'s or *Logistello*'s.  
 
 #### Reversed Reversi program
 
@@ -42,7 +42,7 @@ In the last part, we have known the background of the problem and found some use
 
 Informally, the Reversed Reversi problem is to build a program playing Reversed Reversi with some kinds of high *Intelligence*. 
 
-Formally, this problem can be formulated as a **Task Enviroment,** which is specified by a tuple $(P, E, A, S)$, where P is the performance measure, E is the enviroment, A is the actuators, and S is the sensors. 
+Formally, this problem can be formulated as a **Task Environment,** which is specified by a tuple $(P, E, A, S)$, where P is the performance measure, E is the enviroment, A is the actuators, and S is the sensors. 
 
 Besides problem, we also need to formulate the program. The program for this problem can be formulated as an **Agent Algorithm**, which is specify by a function G, mapping the agents' percept histories to its action. 
 
@@ -73,11 +73,11 @@ TERMINAL-TEST(s)\iff |ACTIONS(s, c)|=0 \and  |ACTIONS(s, -c)|=0  \\
 UTILITY(s, c)= sign(|\{(i, j)|s(i,j)==-c\}|-|\{(i, j)|s(i,j)==c\}|)
 $$
 
-As for ACTIONS and RESULT, it is inconvenient to use first order language to describe. According to Wang, such knowledge is called **Procedural Knowledge**, to be distinguished from Declarative Knowledge, and **it is better be represented in a well defined and standardized procedural programming language**, such as Python. [^13]
+As for ACTIONS and RESULT, it is inconvenient to use first-order language to describe. According to Wang, such knowledge is called **Procedural Knowledge**, to be distinguished from Declarative Knowledge, and **it is better to be represented in well-defined and standardized procedural programming language**, such as Python. [^13]
 
 Therefore,  our formal definitions for this two function are in Python, and for paper shortage you shall read it on my [github](https://github.com/2catycm/SUSTech-CS303_311-Artificial-Intelligence-Project/blob/master/src/project1/experimental/minimax迭代加深机.py) (look at `actions` and `updated_chessboard` method at the beginning of the file for ACTIONS and RESULT).
 
-> Interlude: 概念辨析——任务环境(Task Enviroment)和智能体（Agent）的概念的区别与联系
+> Interlude: 概念辨析——任务环境(Task Environment)和智能体（Agent）的概念的区别与联系
 >
 > **为什么任务环境和智能体都有感受器（Sensors）和效应器（Actuators）？**
 >
@@ -303,7 +303,8 @@ subgraph c1["软件基础架构开发"]
 	direction TB
 	c11(本地的高速模拟器)
 	c12(本地的游戏GUI界面)
-	c11---c12
+	c13(Python和Numba学习)
+	c11---c12---c13
 end
 subgraph c2["AI模型实现"]
 	direction TB
@@ -501,6 +502,13 @@ The following experiments were performed under the following environment conditi
 
 ### Statistical game nature estimation experiment(基于统计的游戏性质估计实验)
 
+General Steps in the following experiments.  
+
+1. Open `experiment/游戏随机性质分析/游戏性质随机分析.ipynb`
+2. We built an efficient `Simulator`with account function support in ``
+3. Write an account function for a new experiment, and runs `do_account_tenth` to experiment ten times. 
+4. See the result by `print` ing the variables that your account function accounts. 
+
 #### Estimate the average breadth（估计平均行动力）
 
 
@@ -513,7 +521,7 @@ The following experiments were performed under the following environment conditi
 
 ​		Knuth&Moore proved that, with an ideal move sorting, alpha beta pruning has a time complexity of O($b^{\frac{m}{2}}$). [^1]Research also shows that alpha-beta boosts up the search of Tic-Tac-Tok by 15 times.[^2]
 
-**Hypothesis. Alpha beta pruning drops down the effective branch breadth by two times.** [^1]
+**Hypothesis. Alpha beta pruning drops down the effective branch breadth to be its square root.** [^1]
 
 **Purpose.** The purpose of this experiment was 
 
@@ -523,17 +531,70 @@ The following experiments were performed under the following environment conditi
 
 ##### Experiment steps
 
+1. Write a new account function for  nodes. 
 
+   ```python
+   a_b_nodes = np.zeros(65)
+   a_b_nodes_times = np.zeros(65)
+   def account_a_b_nodes(rounds, color, chessboard, agents):
+       global a_b_nodes, a_b_nodes_times
+       a_b_node = np.zeros(1)
+       alpha_beta_search_account(chessboard, color, a_b_node, 8)
+       a_b_nodes[rounds] += a_b_node[0]
+       a_b_nodes_times[rounds]+=1
+   ```
 
-##### Experiment results and analysis
+2. Add the new account function into the `accoutants` list in `do_account_tenth`
 
+   ```python
+   accountants = [account_a_b_nodes]
+   ```
 
+3. Run `do_account_tenth` until the precision requirement is satisfied. 
+
+##### Experiment results
+
+The average node numbers of each rounds are 
+
+```data
+array([0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
+       4.71800000e+03, 3.41720000e+03, 5.96620000e+03, 8.07735000e+03,
+       1.15568000e+04, 1.08959000e+04, 1.47169000e+04, 2.01351500e+04,
+       2.18448000e+04, 2.79829500e+04, 3.17610500e+04, 3.35721000e+04,
+       3.46187500e+04, 4.71068500e+04, 3.80531500e+04, 5.27592000e+04,
+       4.40333500e+04, 4.62005500e+04, 4.10718000e+04, 4.82063500e+04,
+       4.25357000e+04, 5.59500500e+04, 4.48639000e+04, 5.51135000e+04,
+       5.21724500e+04, 5.16872500e+04, 4.67959000e+04, 5.52873000e+04,
+       4.54007500e+04, 5.08628000e+04, 4.43237000e+04, 5.52107500e+04,
+       4.11963500e+04, 4.57738500e+04, 3.34940000e+04, 4.21815000e+04,
+       3.37077500e+04, 3.63669500e+04, 2.82919000e+04, 2.80875500e+04,
+       2.20766000e+04, 2.25810500e+04, 1.83278500e+04, 1.57265000e+04,
+       1.02019500e+04, 1.04575500e+04, 7.50470000e+03, 5.45215000e+03,
+       4.55930000e+03, 3.54845000e+03, 2.61700000e+03, 1.93475000e+03,
+       1.07585000e+03, 4.36300000e+02, 1.82714286e+02, 7.19047619e+01,
+       2.67727273e+01, 1.08000000e+01, 5.08695652e+00, 2.16666667e+00,
+       0.00000000e+00])
+```
+
+##### Experiment analysis
+
+**Deduction.** Without pruning, the expected nodes for a 8 plies search is 
+$$
+nodes \approx b^d\approx 8.093^8 = 18,402,478.675
+$$
+If the hypothesis is correct, the expected nodes for a 8 plies search is 
+$$
+a\_b\_nodes \approx \sqrt{b}^d \approx\sqrt{8.093}^8=4,289.8110
+$$
+The average node number is here, however, is **55950.05**. So big! Don't panic! This is not because our evaluation function is bad. Rather, this is because the coefficient of the time complexity is unknown to us. 
+
+**Conclusion.** The experiment **supports the hypothesis** that the effective breadth is squarely rooted. And statistics show that the nodes is dropped down by $18402478.675/55950.05 = 328.909$ times. A big improvement! 
 
 #### 估计胜者特征：平均占角数与稳定子数
 
 
 
-### 探究当算法为贪心算法时不同评估函数对Agent性能的影响
+### Explore the influence of different evaluation functions on Agent performance when the algorithm is greedy algorithm (探究当算法为贪心算法时不同评估函数对Agent性能的影响) 
 
 #### Experiment principle
 
@@ -557,7 +618,7 @@ As we said in 4.1.1, one of the best ways to evaluate an RR agents\` rationality
 
 #### Experiment results and experiment analysis
 
-### 探究当评估函数一定时，不同搜索策略对Agent性能的影响
+### Explore the influence of different search strategies on Agent performance when the evaluation function is constant (探究当评估函数一定时，不同搜索策略对Agent性能的影响)
 
 
 
@@ -571,18 +632,18 @@ In conclusion, the three models I built have these advantages and disa
 | Performance model | Round robin Model is what OJ Performance uses. Random model is reasonable and by Law of large Numbers. | Round robin is limited for accessible players. Random algorithm is too weak even with a end game search. Random algorithm need a long time to reach a acceptable precision. |
 | Search model      | Reasonable timing strategy. Best search depth among my classmates that uses alpha beta search scheme(I reach a average depth of 9 and 12 in the middle game and the end game). | 20% of the time is not used. We can probably run MCTS at the rest of the time in further study. |
 
-Experimental result match my expectation. 
+Experimental results match my expectation. 
 
 In this project, I  have
 
-- gained a better understaning of the knowledge I learnt in the AI course via my hand-by-hand practice and experiments 
-  - Local search
-  - 
+- gained a better understanding of the knowledge I learnt in the AI course via my hand-by-hand practice and experiments 
+  - Local search. 
+  - Adversarial search. 
+  - and I feel very interested in the upcoming Machine Learning Chapters! 
 - learnt practical coding skills of Python programming. 
   - how to write code that compiles in Numba
   - how much performance can I expect from Numba
   - how slow Python is compared to Java/C++/C.
-  - 
 
 In further study, I might try to apply new knowledge about machine learning that will be learnt from the next class to implement the idea I talked about in Performance Model 3. 
 

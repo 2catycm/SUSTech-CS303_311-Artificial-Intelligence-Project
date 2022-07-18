@@ -359,7 +359,7 @@ A-->B-->C-->D-->B
 
 MacGuire points out that if you can achieve a position where you can restrict the  availability of moves to your opponent then you are well on the way to victory.[^9] What he mean by saying this is that you should restrict the mobility of your opponent, in order to force the opponent to place his move at a place he doesn't want, for example the corner. 
 
-Lee and Mahajan has a similar idea that the mobility must have a weight to indicate its importance. [^10]Therefore, the key change for normal to reversed is not from more mobility to less mobility, but from weight of mobility importance of Reversi to weight of mobility  importance of Reversed Reversi
+Lee and Mahajan has a similar idea that the mobility must have a weight to indicate its importance. [^10]Therefore, the key change for normal to reversed is not from more mobility to less mobility, but from weight of mobility importance of Reversi to weight of mobility  importance of Reversed Reversi . 
 
 ### Model design
 

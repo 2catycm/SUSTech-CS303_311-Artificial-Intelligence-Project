@@ -371,7 +371,7 @@ The evaluation function must conform to three rules, according to AIMA. [^1]
 - The evaluation function must not compute for a long time.
 - The evaluation function must be related to the win rate.
 
-I partially agree with AIMA's opinions. 
+I partially agree with AIMA's opinions. If the 
 
 
 
@@ -497,6 +497,8 @@ The following experiments were performed under the following environment conditi
 - Systeminfo：AMD Ryzen 7 4800H with Radeon Graphics， Microsoft Windows 11 专业版, RAM 16G
 - Python：Python 3.10.5, Pycharm 2022.1.3 (PE), numpy 1.22.4, numba 0.55.2
 
+**Get a hand by hand reproduction of my experiment by cloning the [repository](https://github.com/2catycm/SUSTech-CS303_311-Artificial-Intelligence-Project) and run codes and notebooks in experiment folder!** 
+
 ### Statistical game nature estimation experiment(基于统计的游戏性质估计实验)
 
 #### Estimate the average breadth（估计平均行动力）
@@ -557,7 +559,7 @@ As we said in 4.1.1, one of the best ways to evaluate an RR agents\` rationality
 
 ### 探究当评估函数一定时，不同搜索策略对Agent性能的影响
 
-#### 
+
 
 ## Conclusion and discussion
 
@@ -574,7 +576,13 @@ Experimental result match my expectation.
 In this project, I  have
 
 - gained a better understaning of the knowledge I learnt in the AI course via my hand-by-hand practice and experiments 
+  - Local search
+  - 
 - learnt practical coding skills of Python programming. 
+  - how to write code that compiles in Numba
+  - how much performance can I expect from Numba
+  - how slow Python is compared to Java/C++/C.
+  - 
 
 In further study, I might try to apply new knowledge about machine learning that will be learnt from the next class to implement the idea I talked about in Performance Model 3. 
 

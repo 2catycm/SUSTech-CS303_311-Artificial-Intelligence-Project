@@ -326,7 +326,9 @@ Here four models that measure the performance of the evaluation model are presen
 
 A good performance model must at least gives a partial order of what it profiles on. **From Theorem 1. in section 2.2.2, we know that the "beaten relation" is a pretty bad performance model.** Then, how can we measure the performance reliably?
 
-A simple idea that most of my classmates and I could figure out was round robin. Two 
+A simple idea that most of my classmates and I could figure out immediately was **round robin, the same as what we formally defined in 2.1.3** . One of my classmate believed that  it is the "One True" Performance model for this project because the OJ also uses the round robin model, except that the agents are different. 
+
+However, as we can see in the performance theorem, with countable infinite programs doing round robin together, the final score, are all countable infinite. This implies that it is not reliable as a model to provide us with a partial relation. I mean, it is a partial relation with finite agents, but **this model is sensitive to the selection of agents.** That's why we need a better model: Monte Carlo Win Rate. 
 
 #####  Performance Model 2:  Improved Monte Carlo Win Rate Estimation Measure
 
@@ -654,7 +656,7 @@ array([[ 0.58294678,  0.32422638,  0.30072021,  0.04949951,  0.74310493,
          0.26721382,  0.05133057,  0.72602844, -0.12939453, -0.73083496]])
 ```
 
-with improved monte carlo **win rate of 0.85345**.![Trace Plot](D:\EnglishStandardPath\Practice_File\P_Artificial_Intelligence\P_Project\SUSTech-CS303_311-Artificial-Intelligence-Project\doc\P_Project1\P_Project1.assets\Trace Plot.svg)
+with improved monte carlo **win rate of 0.85345**.![Trace Plot](.\P_Project1.assets\Trace Plot.svg)
 
 #### Local search for the optimal weights of combination evaluation model based on Genetic Algorithm(基于演化计算的多阶段多特征融合评估优化) 
 
@@ -671,7 +673,7 @@ array([[  0.60791016,   4.04785156,  16.01070404,   5.        ,
 
 with **neighbour killing value** of 0.40 (the best possible is 0.50).
 
-![Trace Plot](D:\EnglishStandardPath\Practice_File\P_Artificial_Intelligence\P_Project\SUSTech-CS303_311-Artificial-Intelligence-Project\doc\P_Project1\P_Project1.assets\Trace Plot-16586342433192.svg)
+![Trace Plot](.\P_Project1.assets\Trace Plot-16586342433192.svg)
 
 The improved monte carlo **win rate** for the best variable is **0.93** , far surpassing 0.85 in the previous experiment. 
 
@@ -681,13 +683,13 @@ The improved monte carlo **win rate** for the best variable is **0.93** , far su
 
 ## Conclusion and discussion
 
-In conclusion, the three models I built have these advantages and disa
+In conclusion, the three models I built have these advantages and disadvantages: 
 
 | Model             | Advantages                                                   | Disadvantages                                                |
 | ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
 | Evaluation model  | concise and easy to implement.                               | too less parameters, too less characteristics compared to state-of-the-art Reversed Reversi Programs. |
-| Performance model | Round robin Model is what OJ Performance uses. Random model is reasonable and by Law of large Numbers. | Round robin is limited for accessible players. Random algorithm is too weak even with a end game search. Random algorithm need a long time to reach a acceptable precision. |
-| Search model      | Reasonable timing strategy. Best search depth among my classmates that uses alpha beta search scheme(I reach a average depth of 9 and 12 in the middle game and the end game). | 20% of the time is not used. We can probably run MCTS at the rest of the time in further study. |
+| Performance model | Round robin Model is what OJ Performance uses. **Random model is reasonable by Law of large Numbers.** | Round robin is limited for accessible players. Random algorithm is too weak even with a end game search. Random algorithm need a long time to reach a acceptable precision. |
+| Search model      | Reasonable timing strategy. **Best search depth among my classmates that uses alpha beta search scheme(I reach a average depth of 9 and 12 in the middle game and the end game).** | 20% of the time is not used. We can probably run MCTS at the rest of the time in further study. |
 
 Experimental results match my expectation. 
 

@@ -277,67 +277,9 @@ After having a literature review and doing a formulation, I find these problems 
   - How to utilize **local search** algorithms to find the best weight in evaluation function? 
   - How to generate opening books and the weights for pattern-based evaluation scheme by inverse **adversarial searching**?
 
-Therfore, our genearl workflow are as follows:
+Therefore, our general workflow is as follows:
 
-```mermaid
-flowchart TD
-
-subgraph A ["模型准备"]
- direction TB
- a1(文献综述)
- a2(定理推导)
- a3("同学讨论、请教老师和学助")
- 
- a1---a2---a3
-end
-subgraph B ["模型假设"]
-direction TB
- 	b1(评价模型)
-	b2(性能模型)
-	b3(搜索模型)
-	b1---b2---b3
-end
-subgraph C ["模型求解"]
-direction LR
-subgraph c1["软件基础架构开发"]
-	direction TB
-	c11(本地的高速模拟器)
-	c12(本地的游戏GUI界面)
-	c13(Python和Numba学习)
-	c11---c12---c13
-end
-subgraph c2["AI模型实现"]
-	direction TB
-	c21(评价模型)
-	c22(性能模型)
-	c23(搜索模型)
-	c21---c22---c23
-end
-subgraph c3["本地的软件测试"]
-	direction TB
-	c31("烟雾测试（设计的基础测试样例下可运行）")
-	c32("回归测试（新算法不比旧算法弱\基础软件架构速度没有变慢）")
-	c31---c32
-end
-
-c1-->c2-->c3
-end
-
-subgraph D ["模型分析"]
-    direction TB
-	d1(发现问题)
-	d2(构想假说)
-	d3(演绎假说)
-	d4(实验验证)
-	d1-->d2-->d3-->d4-->d2
-	d5(游戏性质估计实验)
-	%%subgraph d6 ["评估函数有效性实验"]d61(专家法特征)d62( ) %%end
-	d6(评估函数有效性实验)
-	d7(搜索策略有效性实验)
-	d5---d6---d7
-end
-A-->B-->C-->D-->B
-```
+![mermaid-diagram-2022-07-24-121829](P_Project1.assets/mermaid-diagram-2022-07-24-121829.svg)
 
 ### Hypothesis and assumptions
 
@@ -566,7 +508,7 @@ array([0., 0., 0., 0., 4., 3.,
 
 The mean of the numbers, except for the round 0-3 and 64, is $8.9495$.
 
-Take round 25-52 as the middle game, the mean of these round is $11.0839$.
+Take round 25-52 as the middle game, the mean of these rounds are $11.0839$.
 
 **Analysis. **
 

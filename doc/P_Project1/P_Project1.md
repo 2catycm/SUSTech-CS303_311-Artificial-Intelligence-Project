@@ -668,29 +668,70 @@ In other words, $nodes = h\cdot\sqrt{b}^d+b$ . And we shall see if different dep
 
 
 
-### Explore the influence of different evaluation functions on Agent performance when the algorithm is greedy algorithm (探究当算法为贪心算法时不同评估函数对Agent性能的影响) 
+### Explore the influence of different evaluation functions on Agent performance when the algorithm is greedy invincibility algorithm (探究当算法为贪心不败算法时不同评估函数对Agent性能的影响) 
 
-#### Experiment principle
+#### General experiment principle
 
-In this part, we do experiments to verify wheter a characteristic is incremental to the performance of our program. 
+In this part, we do experiments to verify **whether a characteristic is incremental to the performance** of our program. 
 
 We control the variable by
 
-- 自变量: 评估函数的类型
-- 无关变量：搜索算法的类型
-- 因变量：三种Performance Model衡量下Agent的表现
+- 自变量: 评估函数的类型与参数
+- 无关变量：搜索算法的类型。 
+  - 控制为统一使用贪心不败算法（Greedy Invincibility, 指**前面回合使用贪心策略，后12回合启用终局搜索**）。
+  - 如Performance Model中我们提到的，贪心不败算法比起贪心算法，对胜率的评估更为科学，可以更好地衡量agent的性能。
 
-#### Experiment setup and experiment steps
+- 因变量：三种Performance Model衡量下Agent的表现。
 
-As we said in 4.1.1, one of the best ways to evaluate an RR agents\` rationality is to evaluate their ranking in the round robin. We need to 
+#### General experiment setup
 
-##### Sub-Experiment 1.1 Baseline verification
+**Setup.** 
 
-##### Sub-Experiment 1.2 AHP combination for better 
+1. To support **the control for irrelevant variable, i.e. the search model**, the "Greedy Invincibility" search model was implemented in [`src/project1/experimental/贪心不败机`](https://github.com/2catycm/SUSTech-CS303_311-Artificial-Intelligence-Project/blob/master/src/project1/experimental/%E8%B4%AA%E5%BF%83%E4%B8%8D%E8%B4%A5%E6%9C%BA.py), click the path link to see the codes in your browser. 
+2. To support the **Beating relation**  in 2.2.2, a numba-boosted high performance game simulator was developed in [`experiment/评估函数/simulator.py`](https://github.com/2catycm/SUSTech-CS303_311-Artificial-Intelligence-Project/blob/master/experiment/评估函数/simulator.py).
+3. To support **round robin performance model** in 3.3.2.1, a simple round robin race organizer was developed in [`experiment/评估函数/评估函数简单对决.py`](https://github.com/2catycm/SUSTech-CS303_311-Artificial-Intelligence-Project/blob/master/experiment/%E8%AF%84%E4%BC%B0%E5%87%BD%E6%95%B0/%E8%AF%84%E4%BC%B0%E5%87%BD%E6%95%B0%E7%AE%80%E5%8D%95%E5%AF%B9%E5%86%B3.py).  
+4. To support **improved monte carlo win rate estimation performance model** in 3.3.2.2, a simple one-by-one repeat race organizer was developed in [`experiment/搜索算法/局部搜索/演化计算_子力特征.ipynb`](https://github.com/2catycm/SUSTech-CS303_311-Artificial-Intelligence-Project/blob/master/experiment/搜索算法/局部搜索/演化计算_子力特征.ipynb). 
+5. To support the **operators of evaluation models** in 3.3.1, different greedy functions and operators are implemented in [`experiment/搜索算法/局部搜索/算子.py`](https://github.com/2catycm/SUSTech-CS303_311-Artificial-Intelligence-Project/blob/master/experiment/%E6%90%9C%E7%B4%A2%E7%AE%97%E6%B3%95/%E5%B1%80%E9%83%A8%E6%90%9C%E7%B4%A2/%E7%AE%97%E5%AD%90.py) and [`experiment/评估函数/greedys.py`](https://github.com/2catycm/SUSTech-CS303_311-Artificial-Intelligence-Project/blob/master/experiment/评估函数/greedys.py)
 
-##### Sub-Experiment 1.3 Genetic programming for local search
+#### Local search for the optimal weights of "value of position" evaluation model based on Genetic Algorithm(基于演化计算的单阶段子力特征评估优化)
 
-#### Experiment results and experiment analysis
+##### Experiment principle
+
+
+
+##### Experiment steps
+
+1. Open the notebook [`experiment/搜索算法/局部搜索/演化计算_子力特征.ipynb`](https://github.com/2catycm/SUSTech-CS303_311-Artificial-Intelligence-Project/blob/master/experiment/搜索算法/局部搜索/演化计算_子力特征.ipynb). 
+
+##### Experiment results
+
+After 10022.8001 s time of searching, the SEGA algorithm finds the best weights 
+
+```python
+array([[ 0.58294678,  0.32422638,  0.30072021,  0.04949951,  0.74310493,
+         0.26721382,  0.05133057,  0.72602844, -0.12939453, -0.73083496]])
+```
+
+with improved monte carlo **win rate of 0.85345**.![Trace Plot](D:\EnglishStandardPath\Practice_File\P_Artificial_Intelligence\P_Project\SUSTech-CS303_311-Artificial-Intelligence-Project\doc\P_Project1\P_Project1.assets\Trace Plot.svg)
+
+#### Local search for the optimal weights of combination evaluation model based on Genetic Algorithm(基于演化计算的多阶段多特征融合评估优化) 
+
+##### Experiment results
+
+After 24438.2295 s time of searching, the SEGA algorithm finds the best weights 
+
+```python
+array([[  0.60791016,   4.04785156,  16.01070404,   5.        ,
+         19.        ,  20.        ,  17.9804306 ,  13.        ,
+         12.8125    , -18.28742981,   1.        ,   0.1       ,
+          0.2       ,   0.6       ,   0.2       ,   0.2       ]])
+```
+
+with **neighbour killing value** of 0.40 (the best possible is 0.50).
+
+![Trace Plot](D:\EnglishStandardPath\Practice_File\P_Artificial_Intelligence\P_Project\SUSTech-CS303_311-Artificial-Intelligence-Project\doc\P_Project1\P_Project1.assets\Trace Plot-16586342433192.svg)
+
+The improved monte carlo **win rate** for the best variable is **0.93** , far surpassing 0.85 in the previous experiment. 
 
 ### Explore the influence of different search strategies on Agent performance when the evaluation function is constant (探究当评估函数一定时，不同搜索策略对Agent性能的影响)
 

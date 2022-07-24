@@ -62,7 +62,7 @@ Environment E, Actuators A and Sensors S are defined by the following notationsï
 | $S_t(x,y)=S_{t}((x,y))$ | The color at (x, y) on the chessboard at round t.            | $S_t(x,y)\in C$                                              |
 |     $ACTIONS(s, c)$     | A set of legal indexes given chessboard state and the color. | $ACTIONS(s, c)\in 2^I $                                      |
 |    $RESULT(s, c,i)$     | The result chessboard after placing index i of color c on chessboard s. | $RESULT:\{(s,c,i)|i\in \\ACTIONS(s,c)\}\rightarrow S$        |
-|  $TERMINAL-TEST(s, c)$  | Whether the chessboard s is a terminated state of the game. It is not related to c in this game, but sometimes it does. | $TERMINAL-TEST: (S\times {-1,1})\rightarrow \{T, F\}$        |
+|  $TERMINAL-TEST(s, c)$  | Whether the chessboard s is a terminated state of the game. It is not related to c in this game, but sometimes it does. | $TERMINAL-TEST: (S\times \{-1,1\})\rightarrow \{T, F\}$      |
 |      UTILITY(s, c)      | For terminated states, defines the reward or profit for player c. UTILITY for the same board and different color must be zero-sumed. | $UTILITY(s, c): \\(\{s\in S|TERMINAL-TEST(s)\}\times\{-1,1\})\rightarrow \R \\UTILITY(s, c)+UTILITY(s, -c)=0$ |
 |         TO, MO          | Time out and memory out for agent.                           | In unit of seconds and in unit of bytes.                     |
 
@@ -96,12 +96,14 @@ Therefore,  our formal definitions for this two function are in Python, and for 
 
 #### Agent Algorithm G
 
-G is a function that maps percept histories to an action. We will implement this function by search model. 
+G is **a function that maps percept histories to an action**. We will implement this function by search model. 
 $$
 A = P^t\rightarrow I \\
 G:A\\
 P = S\times \{1, -1\}
 $$
+
+Notice that **agents are assumed to be deterministic rather than random in our formulation** for simplicity. However, the existence of random agents is a threat to Performance Model 1, thus lead to the development of Performance Model 2. Details would be shown in the 3.3.2 and Theorem 2 of 2.2.2 . 
 
 #### Performance P
 
@@ -140,8 +142,8 @@ $$
 - **Multi-Agent**. In every fighting, it is an 2-agent. As for the performance, it is 30-agent. 
 - **Episodic and Sequential.** Matches are independent to each other, so episodic. Moves in one match are dependent, so sequential.
 - **Semi-dynamic**. The chessboard is static, but their is a TO for our agent., which means the counter of time as a state of the environment is dynamically changing.
-- **Discrete.**The states of all chessboard are finite and discrete. 
-- **Known.**The rule of the game is known by the agent, in the sense that the agent models the ACTIONS and RESULT funcions accurately.
+- **Discrete. **The states of all chessboard are finite and discrete. 
+- **Known.** The rule of the game is known by the agent, in the sense that the agent models the ACTIONS and RESULT functions accurately.
 
 ### Basic theorems and corollaries
 
@@ -173,6 +175,16 @@ In addition, we should show that configuration A and B are possible states to ma
 **Definition. **  *Beating relation.* Beating relation is a relation over the set of all agent algorithms. It is satified for algorithm G1 and G2 IFF G1's accumulated UTILITY  is greater or equal to G2's in competitions that takes black color in turn. If G1 and G2 are not deterministic algorithms, then we calculate the expected accummulated UTILITY.  
 
 **Theorem 1.** *Rock Paper Scissors.* The Beating relation B over the set of all agent algorithms is not a transitive relation, thus not a partial order on the algorithm set. 
+
+**Theorem 2.** *There are only finite agents.* Unlike the set of all real numbers and the set of all Java programs, which are uncountable infinite and countable infinite sets, **the set of all agents(that plays reverse reversi), as defined in 2.1.2, are finite.** 
+
+First of all, the set of all chessboard configuration is finite because it has an upper bound of $3^{64}$ . In addition, the set of all possible moves in each steps are finite with an upper bound of 64. Last but not least, the set of all agents are power set of the cartesian product of the former two sets, therefore its size has an upper bound of $2^{3^{64}\times64}$, implying that it can\`t be infinite.
+
+>  Note: Theorem 2. works only when agents are not random. 
+>
+> â€‹	Although theorem 2. has a sound and valid proof, there is an essential assumption hidden behind. **That is, the agent programs are assumed to be deterministic**, i.e. not random.  **If we take random agents into consideration**, the agent would be formulated into a policy function $\pi(s, a)\in[0,1]$,  whose range would be part of real numbers set, **making the set of all agents uncountably infinite**. 
+
+**Corollary 2.** *Round Robin SCORES over all possible agents exists.* 
 
 #### Agent Algorithm Theorems 
 
@@ -287,7 +299,7 @@ Therefore, our general workflow is as follows:
 
 **Assumption 1.** *Evaluation function is on the current state.* In other words, we don't consider evaluation on actions itself, nor do we consider evaluation on percept histories. 
 
-> Note: Hypothesis 1 and Assumption 1 are **not obvious and not theorems! **From section 2.2 Environment Theorems 2, we know that the RESULT function is not invertible, so when we decide our action, the actioned chessboard is lack of information of the previous step. 
+> Note: Hypothesis 1 and Assumption 1 are **not obvious and not theorems! **From **section 2.2 Environment Theorems 2**, we know that the RESULT function is not invertible, so when we decide our action, the actioned chessboard is lack of information of the previous step. 
 >
 > We make this assumption because 
 >
@@ -328,7 +340,16 @@ A good performance model must at least gives a partial order of what it profiles
 
 A simple idea that most of my classmates and I could figure out immediately was **round robin, the same as what we formally defined in 2.1.3** . One of my classmate believed that  it is the "One True" Performance model for this project because the OJ also uses the round robin model, except that the agents are different. 
 
-However, as we can see in the performance theorem, with countable infinite programs doing round robin together, the final score, are all countable infinite. This implies that it is not reliable as a model to provide us with a partial relation. I mean, it is a partial relation with finite agents, but **this model is sensitive to the selection of agents.** That's why we need a better model: Monte Carlo Win Rate. 
+However, this model has 2 serious defects:
+
+- The **selection** for agents that participate in round robin is **sensitive** to **the result score for an agent to be measured.** 
+- It is popular among my classmates to use **random algorithms** for Reversed Reversi agents. For instance, Monte Carlo Tree Search. 
+  - As we've derived in **section 2.2.2 Performance Theorem 2**, the set of random agents are uncountably infinite. 
+    - Round robin SCORES`s partial order is not a partial order for agents
+    - There is no one true score(the score with all agents involved) in the case that random agents are allowed. 
+  - It make sense to make an hypothesis that round robin model is not good at dealing with random competitors. 
+
+That's why we need a better model with random nature: The Monte Carlo Win Rate Estimation Measure. 
 
 #####  Performance Model 2:  Improved Monte Carlo Win Rate Estimation Measure
 
@@ -673,7 +694,7 @@ array([[  0.60791016,   4.04785156,  16.01070404,   5.        ,
 
 with **neighbour killing value** of 0.40 (the best possible is 0.50).
 
-![Trace Plot](.\P_Project1.assets\Trace Plot-16586342433192.svg)
+![ ](.\P_Project1.assets\Trace Plot-16586342433192.svg)
 
 The improved monte carlo **win rate** for the best variable is **0.93** , far surpassing 0.85 in the previous experiment. 
 

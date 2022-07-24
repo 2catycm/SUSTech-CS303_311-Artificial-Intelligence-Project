@@ -511,7 +511,66 @@ General Steps in the following experiments.
 
 #### Estimate the average breadth（估计平均行动力）
 
+##### **Experiment principle, experiment hypothesis and experiment purpose.** 
 
+**Principle & Purpose. **
+
+​	The Search Breadth, of the Game Tree, or mobility in Reversed Reversi, is a key factor that influence the search depth. A search with average search breadth of b and search depth of d is $O(b^d)$.[^1][^2] **As we know, $3^d \neq \theta(2^d)$ and actually $a<=b\implies a^d=O(b^d)$, although there is often an illusion that they are both "exponential complexity".** [^14]
+
+​	While d is known in Reversed Reversi that it must not exceed 60 by Corollary 1 in 2.2.1, we have no idea what the average mobility is before this experiment. Therefore, **knowing what really the average breadth is in Reverse Reversi** contributes to our attempt to **reduce the effective breadth** by providing the later research with a baseline. In fact, I used the statistics in this experiment into the time control search model in 3.3.3.1.
+
+**Hypothesis.**
+
+​	Research shows that the average breadth of Reversi in the middle game is approximately 10. [^2]We assume that for Reversed Reversi this holds too. 
+
+##### Experiment steps
+
+1. Write an accountant function of mobility for the simulator.
+
+   ```python
+   breadth = np.zeros(65) # 4到64回合可以用
+   breadth_times = np.zeros(65)
+   def account_breadth(rounds, color, chessboard, agents):
+       b = len(new_ai.actions(chessboard, color))
+       breadth[rounds] += b
+       breadth_times[rounds]+=1
+   ```
+
+2. Add the new account function into the `accoutants` list in `do_account_tenth`
+
+   ```python
+   accountants = [account_breadth]
+   ```
+
+3. Run `do_account_tenth` until the precision requirement is satisfied. 
+
+##### Experiment results & Experiment analysis
+
+**Results.**
+
+The average breadth numbers of each rounds are:
+
+```python
+array([0., 0., 0., 0., 4., 3.,
+       4.625, 5.05, 5.75, 6.075, 7.125, 7.45,
+       8.05, 8.125, 8.975, 8.925, 9.1, 9.975,
+       9.725, 10.35, 11., 10.575, 11.525, 11.275,
+       11.4, 12.15, 11.525, 11.85, 12.275, 11.975,
+       12.425, 11.725, 12.9, 12.25, 12.975, 12.375,
+       12.75, 11.725, 12.175, 11.575, 12.075, 11.125,
+       11.6, 10.85, 10.75, 10.125, 10.5, 9.05,
+       9.5, 8.5, 8.475, 7.65, 7.5, 6.675,
+       6.95, 5.55, 5.3, 4.46341463, 4.15, 3.475,
+       2.825, 2.11904762, 1.43478261, 0.70175439, 0.])
+```
+
+The mean of the numbers, except for the round 0-3 and 64, is $8.9495$.
+
+Take round 25-52 as the middle game, the mean of these round is $11.0839$.
+
+**Analysis. **
+
+This result matches the hypothesis that in the middle of the game the breadth is about 10. 
 
 #### Estimate the average size of the game tree of n plies after alpha-beta pruning（估计Alpha Beta剪枝后博弈树节点数量）
 
@@ -519,7 +578,7 @@ General Steps in the following experiments.
 
 **Principle.**
 
-​		Knuth&Moore proved that, with an ideal move sorting, alpha beta pruning has a time complexity of O($b^{\frac{m}{2}}$). [^1]Research also shows that alpha-beta boosts up the search of Tic-Tac-Tok by 15 times.[^2]
+​		Knuth&Moore proved that, with an ideal move sorting, alpha beta pruning has a time complexity of O($b^{\frac{d}{2}}$). [^1]Research also shows that alpha-beta boosts up the search of Tic-Tac-Tok by 15 times.[^2]
 
 **Hypothesis. Alpha beta pruning drops down the effective branch breadth to be its square root.** [^1]
 
@@ -547,7 +606,7 @@ General Steps in the following experiments.
 2. Add the new account function into the `accoutants` list in `do_account_tenth`
 
    ```python
-   accountants = [account_a_b_nodes]
+   accountants = [account_breadth, account_a_b_nodes]
    ```
 
 3. Run `do_account_tenth` until the precision requirement is satisfied. 
@@ -556,7 +615,7 @@ General Steps in the following experiments.
 
 The average node numbers of each rounds are 
 
-```data
+```python
 array([0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
        4.71800000e+03, 3.41720000e+03, 5.96620000e+03, 8.07735000e+03,
        1.15568000e+04, 1.08959000e+04, 1.47169000e+04, 2.01351500e+04,
@@ -576,17 +635,19 @@ array([0.00000000e+00, 0.00000000e+00, 0.00000000e+00, 0.00000000e+00,
        0.00000000e+00])
 ```
 
+The mean of the numbers, except for the round 0-3 and 64, is $26046.6291$.
+
 ##### Experiment analysis
 
 **Deduction.** Without pruning, the expected nodes for a 8 plies search is 
 $$
-nodes \approx b^d\approx 8.093^8 = 18,402,478.675
+nodes \approx b^d\approx 8.9495^8 = 41151927.2374
 $$
 If the hypothesis is correct, the expected nodes for a 8 plies search is 
 $$
-a\_b\_nodes \approx \sqrt{b}^d \approx\sqrt{8.093}^8=4,289.8110
+a\_b\_nodes \approx \sqrt{b}^d \approx\sqrt{8.9495}^8=6414.9768
 $$
-The average node number is here, however, is **55950.05**. So big! Don't panic! This is not because our evaluation function is bad. Rather, this is because the coefficient of the time complexity is unknown to us. 
+The average node number is here, however, is **26046.6291**. So big! Don't panic! This is not because our evaluation function is bad. Rather, this is because the coefficient of the time complexity is unknown to us. 
 
 In other words, $nodes = h\cdot\sqrt{b}^d+b$ . And we shall see if different depth experiments gives us a acceptable($R^2$) linear regression for that formula. 
 
@@ -679,4 +740,6 @@ In further study, I might try to apply new knowledge about machine learning that
 [^12]: “8.2.5. NBEP 6: Typing Recursion — Numba 0.38.0rc1+0.ga0390f6.dirty documentation.” http://numba.pydata.org/numba-doc/0.38.0/proposals/typing_recursion.html (accessed Jul. 17, 2022).
 
 [^13]: 学堂在线, “人工智能原理 - 北京大学,” 学堂在线. https://www.xuetangx.com/learn/PKU08091000777/PKU08091000777/10322346/video/17400688 (accessed Jul. 17, 2022).
+
+[^14]: R. Sedgewick and K. Wayne, *Algorithms*, 4th edition. Upper Saddle River, NJ: Addison-Wesley Professional, 2011.
 

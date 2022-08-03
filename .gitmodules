@@ -7,3 +7,6 @@
 [submodule "ref/Tokasumi"]
 	path = ref/Tokasumi
 	url = https://github.com/Tokasumi/CS303-Fall2021-Reversed-Reversi.git
+[submodule "experiment/Project3 古诗词分类/chinese-poetry"]
+	path = experiment/Project3 古诗词分类/chinese-poetry
+	url = https://github.com/chinese-poetry/chinese-poetry.git

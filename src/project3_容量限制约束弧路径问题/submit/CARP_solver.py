@@ -37,20 +37,6 @@ class CarpInstance:
             self.graph[elements[0]] += [[elements[1], *elements[2:]]]
             self.graph[elements[1]] += [[elements[0], *elements[2:]]]
         return self
-
-    def bellman_ford(self):
-        N = self.vertices
-        G = self.graph
-        distances = np.ones((N + 1, N + 1)) * np.inf
-        distances[distances.diag_indices_from(distances)] = 0  # 自己到自己距离为0
-
-        for _ in range(N-1): # 至多需要N-1轮迭代收敛
-            for i in range(1, N+1): # 遍历所有的节点的邻接表
-                for edge in G[i]:
-                    for j in range(1, N+1): # 以j为起点，可以有所更新。
-
-        return distances
-
     def __str__(self):
         last_endl = 0
         s = "carp_instance("
@@ -64,6 +50,30 @@ class CarpInstance:
         for v in range(1, self.vertices + 1):
             s += f"adj({v}): {self.graph[v]}\n"
         return s + ")"
+
+    def bellman_ford(self):
+        N = self.vertices
+        G = self.graph
+        distances = np.ones((N + 1, N + 1)) * np.inf  # # distances[i, j] 表示i为起点到j的最短路 。 应当为对称矩阵
+        distances[np.diag_indices_from(distances)] = 0  # 自己到自己距离为0
+        paths = np.ones((N + 1, N + 1)) * (-1)  # path[i, j] 表示i为起点，到达j的最短路上，最后一个中转节点。
+        # 初始化一个直接连边最短路
+        for i in range(1, N + 1):
+            for edge in G[i]:
+                distances[i, edge[0]] = edge[1]
+                paths[i, edge[0]] = i # 经过零次中转即可。
+        # 算法正式开始
+        for k in range(1, N + 1):  # 中间点
+            for i in range(1, N + 1):  # 起点
+                for j in range(1, N + 1):  # 终点
+                    new_cost = distances[i, k] + distances[k, j]
+                    if new_cost < distances[i, j]:
+                        distances[i, j] = new_cost
+                        paths[i, j] = k  # 中转节点
+
+        return distances,paths
+    # def path_scanning(self):
+
 
 
 if __name__ == '__main__':
@@ -92,4 +102,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     # print(type(args.carp_instance))
     carp_instance = CarpInstance().with_file(args.carp_instance)
-    print(carp_instance)
+    # print(carp_instance)
+    print(carp_instance.bellman_ford())

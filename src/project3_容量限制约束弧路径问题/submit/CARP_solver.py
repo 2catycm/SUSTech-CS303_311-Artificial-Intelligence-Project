@@ -1,6 +1,8 @@
 import argparse
 import time
 import random
+import numpy as np
+
 
 class CarpInstance:
     def __init__(self):
@@ -13,6 +15,7 @@ class CarpInstance:
         self.capacity = 0
         self.total_cost_of_required_edges = 0
         self.graph = []  # 每一个是邻接表。邻居的表示是 other, cost, demand. 为了效率不做面向对象。
+
     def with_file(self, filename: str):
         with open(filename) as file:
             lines = file.readlines()
@@ -25,7 +28,7 @@ class CarpInstance:
         self.capacity = int(lines[6].split()[2])
         self.total_cost_of_required_edges = int(lines[7].split()[6])
         # self.graph = [[]] * (self.vertices + 1) # 不能这样写，这样 地址是一样的。
-        self.graph = [[] for i in range(self.vertices+1)]
+        self.graph = [[] for i in range(self.vertices + 1)]
 
         for line in lines[9:]:  # 直接开始读数据
             if line == "END\n":
@@ -34,19 +37,34 @@ class CarpInstance:
             self.graph[elements[0]] += [[elements[1], *elements[2:]]]
             self.graph[elements[1]] += [[elements[0], *elements[2:]]]
         return self
+
+    def bellman_ford(self):
+        N = self.vertices
+        G = self.graph
+        distances = np.ones((N + 1, N + 1)) * np.inf
+        distances[distances.diag_indices_from(distances)] = 0  # 自己到自己距离为0
+
+        for _ in range(N-1): # 至多需要N-1轮迭代收敛
+            for i in range(1, N+1): # 遍历所有的节点的邻接表
+                for edge in G[i]:
+                    for j in range(1, N+1): # 以j为起点，可以有所更新。
+
+        return distances
+
     def __str__(self):
         last_endl = 0
         s = "carp_instance("
         for name, value in vars(self).items():
-            if name=='graph': continue
-            s+=f"{name}={value}, "
-            if len(s)-last_endl >=100:
+            if name == 'graph': continue
+            s += f"{name}={value}, "
+            if len(s) - last_endl >= 100:
                 last_endl = len(s)
-                s+="\n"
-        s+="\ngraph=[adj[edge[other, cost, demand], edge[...]], adj[...]]\n"
-        for v in range(1, self.vertices+1):
-            s+=f"adj({v}): {self.graph[v]}\n"
-        return s+")"
+                s += "\n"
+        s += "\ngraph=[adj[edge[other, cost, demand], edge[...]], adj[...]]\n"
+        for v in range(1, self.vertices + 1):
+            s += f"adj({v}): {self.graph[v]}\n"
+        return s + ")"
+
 
 if __name__ == '__main__':
     # 创建解析步骤

@@ -4,6 +4,14 @@ import random
 import numpy as np
 
 
+def betterThan(new_edge, old_edge, load, capacity, depot, distances):
+    diff_ratio = new_edge[3]/new_edge[2] - old_edge[3]/old_edge[2]
+    diff_distance = distances[new_edge[0], depot]-distances[old_edge[0], depot]
+    full_ratio = load/capacity
+    assert 0<=full_ratio<=1
+    return diff_distance if full_ratio>0.5 else -diff_distance
+
+
 class CarpInstance:
     def __init__(self):
         self.name = "default"
@@ -15,6 +23,7 @@ class CarpInstance:
         self.capacity = 0
         self.total_cost_of_required_edges = 0
         self.graph = []  # 每一个是邻接表。邻居的表示是 other, cost, demand. 为了效率不做面向对象。
+        self.task_edges = []
 
     def with_file(self, filename: str):
         with open(filename) as file:
@@ -31,12 +40,15 @@ class CarpInstance:
         self.graph = [[] for i in range(self.vertices + 1)]
 
         for line in lines[9:]:  # 直接开始读数据
-            if line == "END\n":
+            if line.startswith("END"):
                 break
             elements = list(map(int, line.split()))
             self.graph[elements[0]] += [[elements[1], *elements[2:]]]
             self.graph[elements[1]] += [[elements[0], *elements[2:]]]
+            if elements[3] != 0:
+                self.task_edges.append(elements)
         return self
+
     def __str__(self):
         last_endl = 0
         s = "carp_instance("
@@ -61,7 +73,7 @@ class CarpInstance:
         for i in range(1, N + 1):
             for edge in G[i]:
                 distances[i, edge[0]] = edge[1]
-                paths[i, edge[0]] = i # 经过零次中转即可。
+                paths[i, edge[0]] = i  # 经过零次中转即可。
         # 算法正式开始
         for k in range(1, N + 1):  # 中间点
             for i in range(1, N + 1):  # 起点
@@ -71,9 +83,52 @@ class CarpInstance:
                         distances[i, j] = new_cost
                         paths[i, j] = k  # 中转节点
 
-        return distances,paths
-    # def path_scanning(self):
+        return distances, paths
 
+    def path_scanning(self, distances):
+        unserviced = self.task_edges  # 注意，内部的由于没有变过，所以浅拷贝。
+        graph = self.graph
+        depot = self.depot
+        capacity = self.capacity
+
+
+        routes = []
+        costs = 0
+        while len(unserviced) != 0:
+            route = []
+            load = 0
+            cost = 0
+            current_end = depot
+            while True:
+                d = np.inf
+                u = None
+                u_remove = None
+                for task_edge in unserviced:
+                    if load + task_edge[3] > capacity:  # 3 是 demand
+                        continue
+                    for s, e in [[0, 1], [1, 0]]:
+                        new_dist = distances[current_end][task_edge[s]]
+                        new_edge = [task_edge[s], task_edge[e], task_edge[2], task_edge[3]]
+                        if new_dist < d:
+                            d = new_dist
+                            u = new_edge
+                            u_remove = task_edge
+                        elif new_dist == d and betterThan(new_edge, u, load, capacity, depot, distances):
+                            u = new_edge
+                            u_remove = task_edge
+                if d == np.inf:
+                    break
+                load += u[3]  # 3是demand
+                cost += d + u[2]  # 2 是cost
+                current_end = u[1]
+                route.append(u)
+                unserviced.remove(u_remove)
+                if len(unserviced) == 0:
+                    break
+            cost += distances[current_end, depot]  # 回到起点
+            routes.append(route)
+            costs +=cost
+        return routes, costs
 
 
 if __name__ == '__main__':
@@ -103,4 +158,16 @@ if __name__ == '__main__':
     # print(type(args.carp_instance))
     carp_instance = CarpInstance().with_file(args.carp_instance)
     # print(carp_instance)
-    print(carp_instance.bellman_ford())
+    distances, paths = carp_instance.bellman_ford()
+    routes, costs = carp_instance.path_scanning(distances)
+    # print(routes)
+    # print(costs)
+    line = "s "
+    for route in routes:
+        line+="0,"
+        for task_edge in route:
+            line+=f"({task_edge[0]},{task_edge[1]}),"
+        line+="0,"
+    line = line[:len(line)-1] #多余逗号
+    print(line)
+    print(f"q {int(costs):d}")

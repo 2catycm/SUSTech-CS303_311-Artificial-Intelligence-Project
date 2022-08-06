@@ -4,11 +4,20 @@ import random
 import numpy as np
 import re
 import copy
+from typing import List
 
 
 def floyd(N, G):
     """
     解决多源最短路问题的弗洛伊德算法。
+    弗洛伊德算法正确性证明：
+        首先，假设图无负环，否则存在无穷小的最短路。
+        则任何节点到任何节点，必定存在一条使用节点数小于n的最短路。
+        不妨设 i 到 j 节点的最短路需要 x_ij 个节点。
+        # 对于任何 (i, j), 如果 x_ij =1, 则自然就是最短路。（不需要这一句，对于有负边和环的图不成立）
+        对于任意(i, j), 考虑1-n的所有节点作为中介节点参与到(i, j)的最短路，不妨设最短路中编号最大的节点为 k_ij
+        只要证明 k_ij 出现之前，最外层循环一定已经在左边和右边得到了最短路。
+        可以递归证明。
     :param N: 边的数量。默认以1开始编号节点。
     :param G: 邻接表形式的图，默认以0不启用。
     :return distances: distances[i, j] 表示i为起点到j的最短路 。 应当为对称矩阵
@@ -165,18 +174,81 @@ class SolutionOperators:
     def __init__(self, carp_instance):
         self.carp_instance = carp_instance
 
-    def routes2task_edges(self, routes):
+    def merge(self, routes):
         """
         从多个 route 的集合 合并(merge) 为一条 "giant route" （不符合容量约束）
         需要通过 @task_edges2routes() 方法重新获得合法的 routes 集合。
         :param routes:
-        :return:
+        :return task_edges: 一个 giant route，是 carp 问题所有任务边的一个排列。
+        """
+        task_edges = [task_edge for route in routes for task_edge in route]
+        return task_edges
+
+    def ulusoy_split(self, task_edges):
+        """
+        使用 Ulusoy Split 将 “giant route" 分割为 route 的集合，使得分割后符合容量约束且 costs 最低。
+        我们使用动态规划算法实现。
+        设任务集合为 T1, T2, T3, ..., Tn
+        中间可以分割的间隔是 S1, S2, ..., Sn-1。每个 S 赋值0表示不分割，1表示分割
+        OPT(i) 为考虑了第1:i个任务后，最优的 cost。
+        如果 Si-1 决策为分割，那么OPT(i) = OPT(i-1) + dist(depot, Ti.s)+cost(Ti.s, Ti.e)+dist(Ti.e, depot)
+        如果 Si-1 决策为不分割， 那么 OPT(i) = OPT(i-1) - dist(Ti-1.e, depot) + dist(Ti-1.e, Ti.s)
+        无后效性的证明：
+            TODO
+        :return routes: 最优路径分割方案
         """
         pass
 
-    def task_edges2routes(self):
-        pass
+    def operator_interface(self, operation_type: str, task_edges: List[List[int]], i=-1, j=-1):
+        """
+        操作子接口。
+        :param operation_type:
+        :param task_edges: 自动复制传参，不会对外面造成伤害。
+        :param i:
+        :param j:
+        :return task_edges: 修改后的新对象。
+        :return i, j: 如果没有传参数进来，返回内部随机出来的参数。
+            有助于外面进行修改和重新评估，比如把方向换一下, 看看哪个更好。
+        """
+        task_edges = copy.deepcopy(task_edges)  # 为了避免风险，直接深拷贝
+        N = len(task_edges)
+        upperbound = N if operation_type!='double_insertion' else N-1
+        if not (0 <= i < upperbound):
+            i = random.randrange(0, upperbound)  # range就不用减一。
+        if not (0 <= j < upperbound):
+            j = random.randrange(0, upperbound)
+        table = {
+            'single_insertion': self.single_insertion,
+            'double_insertion': self.double_insertion,
+            'swap': self.swap,
+        }
+        table[operation_type](task_edges, i, j)
+        return task_edges, i, j
 
+    def single_insertion(self, task_edges: List[List[int]], i, j):
+        """
+        remove the i th task and reinsert it into the j th place.
+        删除第i个任务，然后重新插入到第j个位置
+        """
+        victim = task_edges.pop(i)
+        task_edges.insert(j, victim)
+
+    def double_insertion(self, task_edges: List[List[int]], i, j):
+        """
+        随便选择两个连在一起的任务，然后放到另外一个位置
+        """
+        victim_left = task_edges.pop(i)
+        victim_right = task_edges.pop(i)
+        task_edges.insert(j, victim_right)
+        task_edges.insert(j, victim_left)
+
+    def swap(self, task_edges: List[List[int]], i, j):
+        """
+        随便把两个任务换一下。
+        """
+        task_edges[i], task_edges[j] = task_edges[j], task_edges[i]
+    def two_opt(self):
+        raise NotImplementedError()
 
 class HeuristicSearch:
     """
@@ -248,7 +320,10 @@ class LocalSearch:
     """
     使用局部搜索
     """
-    pass
+
+    def __init__(self, carp_instance):
+        self.carp_instance = carp_instance
+    # def
 
 
 class EvolutionarySearch:
@@ -264,6 +339,7 @@ class EvolutionarySearch:
 
     def optimize(self):
         pass
+
 
 def main():
     # 创建解析步骤
@@ -289,7 +365,7 @@ def main():
     parser.add_argument('--version', action='version', version='version 0.1.0')
     # 解析参数步骤
     args = parser.parse_args()
-    # print(type(args.carp_instance))
+    random.seed(args.random_seed)  # 也可以不加，避免被攻击。
     carp_instance = CarpInstance().with_file(args.carp_instance).with_distances_calculated()
     # print(carp_instance)
     # carp_instance2 = carp_instance.copy()
@@ -299,5 +375,7 @@ def main():
     solution = carp_solver.path_scanning()
     assert solution.costs == carp_instance.costs_of(solution.routes)
     print(solution)
+
+
 if __name__ == '__main__':
     main()

@@ -29,7 +29,10 @@ if __name__ == '__main__':
             cost = int(result[1].split()[1])
             costs.append(cost)
             print(f"Instance {name} finished with time {time_used:e}s and cost {cost}.")
+            print()
 
     print(dataset_names)
     print(costs)
     print(f"Total cost is {sum(costs)}. Total time used is {sum(times)}s. ")
+
+    # baseline 是 [309, 370, 6446, 4188, 344, 482, 212], 12351.

@@ -1,6 +1,7 @@
 import argparse
 import time
 import random
+import math
 import numpy as np
 import re
 import copy
@@ -171,9 +172,6 @@ class SolutionOperators:
     对 Carp 解进行修改，以便优化算法可以优化。
     """
 
-    def __init__(self, carp_instance):
-        self.carp_instance = carp_instance
-
     def merge(self, routes):
         """
         从多个 route 的集合 合并(merge) 为一条 "giant route" （不符合容量约束）
@@ -184,9 +182,84 @@ class SolutionOperators:
         task_edges = [task_edge for route in routes for task_edge in route]
         return task_edges
 
-    def ulusoy_split(self, task_edges):
+    def ulusoy_split(self, task_edges, carp_instance):
         """
         使用 Ulusoy Split 将 “giant route" 分割为 route 的集合，使得分割后符合容量约束且 costs 最低。
+        :return routes: 最优路径分割方案
+        :return costs: 最优路径分割方案的代价
+        """
+        if carp_instance.capacity <= 2 * carp_instance.vertices:
+            return self.ulusoy_split_DP(task_edges, carp_instance)
+        else:
+            return self.ulusoy_split_SSP(task_edges, carp_instance)
+
+    def ulusoy_split_SSP(self, task_edges, carp_instance):
+        """
+        转换为图的单源最短路问题求解。
+        转换为图需要 O()
+        :param task_edges:
+        :param carp_instance:
+        :return:
+        """
+        distances = carp_instance.distances
+        depot = carp_instance.depot
+        capacity = carp_instance.capacity
+        N = len(task_edges)  # 任务数量
+        # 1. 建图
+        digraph = [[] for i in range(2 * N + 1)]  # 节点数量比较多。 有向图。
+        for i in range(N):
+            task_i = task_edges[i]
+            for j in range(i, N):
+                task_j = task_edges[j]
+                # 两两组合的一种枚举。包括自己到自己。
+                # 表示从这个任务开始，到这个任务结束，中间没有回仓库休息。
+                current = depot
+                cost = 0
+                for k in range(i, j + 1):
+                    task_edge_k = task_edges[k]
+                    cost += distances[current, task_edge_k[0]]  # task_edge_k.start
+                    cost += task_edge_k[2]  # task_edge_k.cost
+                    current = task_edge_k[1]  # task_edge_k.end
+                cost += distances[current, depot]
+                if cost <= capacity:
+                    # 是一种可能情况，所以加入到图中。
+                    digraph[task_i[0]].append([task_j[0], cost])  # 加入这一种到达方案
+        for i in range(1, N):  # 1:N-1 插入0
+            digraph[2 * i].append([2 * i + 1, 0])
+        # 2. 求解最短路
+        paths = [-1 for _ in range(2 * N + 1)]
+        distances = [math.inf for _ in range(2 * N + 1)]
+        distances[1] = 0
+        for i in range(1, 2 * N + 1):  # 由于所有边都往后面指，所以遍历到的时候一定是最短了，就是说已经被所有可能缩短距离的边松弛过。
+            for relative in digraph[i]:
+                new_cost = distances[i] + relative[1]  # relative.cost
+                if new_cost < distances[relative[0]]:
+                    distances[relative[0]] = new_cost
+                    paths[relative[0]] = i
+        # 3. 恢复切割。 比如，上一步求出了 1-》4-》5-》8 的最短路
+        current = 2 * N  # 比如 8
+        split_points = [current]
+        while current > 1:
+            parent = paths[current]
+            assert parent != -1 and parent < current and parent % 2 == 1  # 不是没有最短路径、在前面、是奇数节点而不是偶数节点。
+            split_points.insert(0, parent)
+            current = parent - 1  # 上一步, 最后一步变成0
+        # 4. 根据切割面获得结果。比如，上一步求出了 1, 5, 8为分割点
+        routes = []
+        current = 0  # 指向 task_edges
+        for i in range(1, len(split_points)):  # 切割点第一个总是1， 不管。
+            split_point = split_points[i]
+            route = []
+            while (current + 1) * 2 < split_point:  # 比如 4<5
+                route.append(task_edges[current])
+                current += 1
+            routes.append(route)
+
+        return routes, distances[2 * N]
+
+    def ulusoy_split_DP(self, task_edges, carp_instance):
+        """
+        本算法实现为 O(nC), 如果C不大可以考虑。
         我们使用动态规划算法实现。
         设任务集合为 T1, T2, T3, ..., Tn
         中间可以分割的间隔是 S1, S2, ..., Sn-1。每个 S 赋值0表示不分割，1表示分割
@@ -195,13 +268,16 @@ class SolutionOperators:
         如果 Si-1 决策为不分割， 那么 OPT(i) = OPT(i-1) - dist(Ti-1.e, depot) + dist(Ti-1.e, Ti.s)
         无后效性的证明：
             TODO
-        :return routes: 最优路径分割方案
+        :param task_edges:
+        :param carp_instance:
+        :return:
         """
         pass
 
     def operator_interface(self, operation_type: str, task_edges: List[List[int]], i=-1, j=-1):
         """
-        操作子接口。
+        算子的非原地操作的接口。
+        如果要用原地操作加快速度，直接调用下面的函数。
         :param operation_type:
         :param task_edges: 自动复制传参，不会对外面造成伤害。
         :param i:
@@ -212,7 +288,7 @@ class SolutionOperators:
         """
         task_edges = copy.deepcopy(task_edges)  # 为了避免风险，直接深拷贝
         N = len(task_edges)
-        upperbound = N if operation_type!='double_insertion' else N-1
+        upperbound = N if operation_type != 'double_insertion' else N - 1
         if not (0 <= i < upperbound):
             i = random.randrange(0, upperbound)  # range就不用减一。
         if not (0 <= j < upperbound):
@@ -221,6 +297,8 @@ class SolutionOperators:
             'single_insertion': self.single_insertion,
             'double_insertion': self.double_insertion,
             'swap': self.swap,
+            'two_opt': self.two_opt,
+            'flip': self.flip,
         }
         table[operation_type](task_edges, i, j)
         return task_edges, i, j
@@ -247,8 +325,14 @@ class SolutionOperators:
         随便把两个任务换一下。
         """
         task_edges[i], task_edges[j] = task_edges[j], task_edges[i]
+
     def two_opt(self):
         raise NotImplementedError()
+
+    def flip(self, task_edges: List[List[int]], i, j=None):
+        task_edge = task_edges[i]
+        task_edge[0], task_edge[1] = task_edge[1], task_edge[0]  # 交换顺序。
+
 
 class HeuristicSearch:
     """

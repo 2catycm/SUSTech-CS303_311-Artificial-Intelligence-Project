@@ -98,6 +98,21 @@ class CarpInstance:
         self.distances, _ = floyd(self.vertices, self.graph)  # 暂时不关心 paths
         return self
 
+    def costs_of(self, routes):
+        depot = self.depot
+        distances = self.distances
+        costs = 0
+        for route in routes:
+            cost = 0
+            current = depot
+            for task_edge in route:
+                cost += distances[current, task_edge[0]]  # task_edge.start
+                cost += task_edge[2]  # task_edge.cost
+                current = task_edge[1]  # task_edge.end
+            cost += distances[current, depot]
+            costs += cost
+        return costs
+
     def __str__(self):
         last_endl = 0
         s = "carp_instance("
@@ -114,16 +129,16 @@ class CarpInstance:
 
 
 class CarpSolution:
-    def __init__(self, routes, costs):
+    """
+    简单的entity，提供 str 变换
+    """
+
+    def __init__(self, routes, costs=None):
         self.routes = routes
         self.costs = costs
 
-    def to_task_edges(self):
-        pass
-
-    @staticmethod
-    def from_task_edges():
-        pass
+    def with_costs_calculated(self, carp_instance):
+        self.costs = carp_instance.costs_of(self.routes)
 
     def __str__(self):
         """
@@ -146,12 +161,22 @@ class SolutionOperators:
     """
     对 Carp 解进行修改，以便优化算法可以优化。
     """
+
     def __init__(self, carp_instance):
         self.carp_instance = carp_instance
-    def routes2task_edges(self):
+
+    def routes2task_edges(self, routes):
+        """
+        从多个 route 的集合 合并(merge) 为一条 "giant route" （不符合容量约束）
+        需要通过 @task_edges2routes() 方法重新获得合法的 routes 集合。
+        :param routes:
+        :return:
+        """
         pass
+
     def task_edges2routes(self):
         pass
+
 
 class HeuristicSearch:
     """
@@ -163,6 +188,7 @@ class HeuristicSearch:
     由于 carp 问题是 中国乡土(rural，表示并不是所有地方都是邮递员管辖的区域)邮递员问题 的一般形式，所以也可以用 path-scanning 解 中国乡土邮递员问题， 方法是设置 capacity 为无穷大。
     如果需要解更加特殊的 中国邮递员问题 ， 可以 每一条边都设置一个任务。
     """
+
     def __init__(self, carp_instance):
         self.carp_instance = carp_instance
 
@@ -229,16 +255,17 @@ class EvolutionarySearch:
     """
     使用演化计算
     """
+
     def __init__(self, carp_instance, population_size, budget, probability_local_search):
         self.carp_instance = carp_instance
         self.population_size = population_size
         self.budget = budget
         self.probability_local_search = probability_local_search
+
     def optimize(self):
         pass
 
-
-if __name__ == '__main__':
+def main():
     # 创建解析步骤
     parser = argparse.ArgumentParser(description='容量限制约束弧路径问题求解器。', epilog='So what can I help you? ')
 
@@ -267,9 +294,10 @@ if __name__ == '__main__':
     # print(carp_instance)
     # carp_instance2 = carp_instance.copy()
     # carp_instance2.capacity = 3
-    # carp_solver = PathScanningHeuristic(carp_instance2)
+    # carp_solver = HeuristicSearch(carp_instance2)
     carp_solver = HeuristicSearch(carp_instance)
     solution = carp_solver.path_scanning()
+    assert solution.costs == carp_instance.costs_of(solution.routes)
     print(solution)
-
-
+if __name__ == '__main__':
+    main()

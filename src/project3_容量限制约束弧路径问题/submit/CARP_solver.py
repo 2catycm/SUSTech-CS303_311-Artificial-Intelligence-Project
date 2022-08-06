@@ -2,14 +2,15 @@ import argparse
 import time
 import random
 import numpy as np
+import re
 
 
 def betterThan(new_edge, old_edge, load, capacity, depot, distances):
-    diff_ratio = new_edge[3]/new_edge[2] - old_edge[3]/old_edge[2]
-    diff_distance = distances[new_edge[0], depot]-distances[old_edge[0], depot]
-    full_ratio = load/capacity
-    assert 0<=full_ratio<=1
-    return diff_distance if full_ratio>0.5 else -diff_distance
+    diff_ratio = new_edge[3] / new_edge[2] - old_edge[3] / old_edge[2]
+    diff_distance = distances[new_edge[0], depot] - distances[old_edge[0], depot]
+    full_ratio = load / capacity
+    assert 0 <= full_ratio <= 1
+    return diff_distance if full_ratio > 0.5 else -diff_distance
 
 
 class CarpInstance:
@@ -28,14 +29,14 @@ class CarpInstance:
     def with_file(self, filename: str):
         with open(filename) as file:
             lines = file.readlines()
-        self.name = lines[0].split()[2]
-        self.vertices = int(lines[1].split()[2])
-        self.depot = int(lines[2].split()[2])
-        self.required_edges = int(lines[3].split()[3])
-        self.non_required_edges = int(lines[4].split()[3])
-        self.vehicles = int(lines[5].split()[2])
-        self.capacity = int(lines[6].split()[2])
-        self.total_cost_of_required_edges = int(lines[7].split()[6])
+        self.name = re.split("\\s+", lines[0])[-2]
+        self.vertices = int(re.split("\\s+", lines[1])[-2])
+        self.depot = int(re.split("\\s+", lines[2])[-2])
+        self.required_edges = int(re.split("\\s+", lines[3])[-2])
+        self.non_required_edges = int(re.split("\\s+", lines[4])[-2])
+        self.vehicles = int(re.split("\\s+", lines[5])[-2])
+        self.capacity = int(re.split("\\s+", lines[6])[-2])
+        self.total_cost_of_required_edges = int(re.split("\\s+", lines[7])[-2])
         # self.graph = [[]] * (self.vertices + 1) # 不能这样写，这样 地址是一样的。
         self.graph = [[] for i in range(self.vertices + 1)]
 
@@ -91,7 +92,6 @@ class CarpInstance:
         depot = self.depot
         capacity = self.capacity
 
-
         routes = []
         costs = 0
         while len(unserviced) != 0:
@@ -127,7 +127,7 @@ class CarpInstance:
                     break
             cost += distances[current_end, depot]  # 回到起点
             routes.append(route)
-            costs +=cost
+            costs += cost
         return routes, costs
 
 
@@ -164,10 +164,10 @@ if __name__ == '__main__':
     # print(costs)
     line = "s "
     for route in routes:
-        line+="0,"
+        line += "0,"
         for task_edge in route:
-            line+=f"({task_edge[0]},{task_edge[1]}),"
-        line+="0,"
-    line = line[:len(line)-1] #多余逗号
+            line += f"({task_edge[0]},{task_edge[1]}),"
+        line += "0,"
+    line = line[:len(line) - 1]  # 多余逗号
     print(line)
     print(f"q {int(costs):d}")

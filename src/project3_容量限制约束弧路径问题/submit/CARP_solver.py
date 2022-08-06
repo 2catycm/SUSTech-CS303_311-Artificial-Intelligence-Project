@@ -3,14 +3,35 @@ import time
 import random
 import numpy as np
 import re
+import copy
 
 
-def betterThan(new_edge, old_edge, load, capacity, depot, distances):
-    diff_ratio = new_edge[3] / new_edge[2] - old_edge[3] / old_edge[2]
-    diff_distance = distances[new_edge[0], depot] - distances[old_edge[0], depot]
-    full_ratio = load / capacity
-    assert 0 <= full_ratio <= 1
-    return diff_distance if full_ratio > 0.5 else -diff_distance
+def floyd(N, G):
+    """
+    解决多源最短路问题的弗洛伊德算法。
+    :param N: 边的数量。默认以1开始编号节点。
+    :param G: 邻接表形式的图，默认以0不启用。
+    :return distances: distances[i, j] 表示i为起点到j的最短路 。 应当为对称矩阵
+    :return paths: path[i, j] 表示i为起点，到达j的最短路上，最后一个中转节点。
+    """
+    distances = np.ones((N + 1, N + 1)) * np.inf  # # distances[i, j] 表示i为起点到j的最短路 。 应当为对称矩阵
+    distances[np.diag_indices_from(distances)] = 0  # 自己到自己距离为0
+    paths = np.ones((N + 1, N + 1)) * (-1)  # path[i, j] 表示i为起点，到达j的最短路上，最后一个中转节点。
+    # 初始化一个直接连边最短路
+    for i in range(1, N + 1):
+        for edge in G[i]:
+            distances[i, edge[0]] = edge[1]
+            paths[i, edge[0]] = i  # 经过零次中转即可。
+    # 算法正式开始
+    for k in range(1, N + 1):  # 中间点
+        for i in range(1, N + 1):  # 起点
+            for j in range(1, N + 1):  # 终点
+                new_cost = distances[i, k] + distances[k, j]
+                if new_cost < distances[i, j]:
+                    distances[i, j] = new_cost
+                    paths[i, j] = k  # 中转节点
+
+    return distances, paths
 
 
 class CarpInstance:
@@ -23,8 +44,9 @@ class CarpInstance:
         self.vehicles = 0
         self.capacity = 0
         self.total_cost_of_required_edges = 0
-        self.graph = []  # 每一个是邻接表。邻居的表示是 other, cost, demand. 为了效率不做面向对象。
+        self.graph = None  # 每一个是邻接表。邻居的表示是 other, cost, demand. 为了效率不做面向对象。
         self.task_edges = []
+        self.distances = None
 
     def with_file(self, filename: str):
         with open(filename) as file:
@@ -50,6 +72,11 @@ class CarpInstance:
                 self.task_edges.append(elements)
         return self
 
+    def with_distances_calculated(self):
+        assert self.graph is not None
+        self.distances, _ = floyd(self.vertices, self.graph)  # 暂时不关心 paths
+        return self
+
     def __str__(self):
         last_endl = 0
         s = "carp_instance("
@@ -64,33 +91,41 @@ class CarpInstance:
             s += f"adj({v}): {self.graph[v]}\n"
         return s + ")"
 
-    def bellman_ford(self):
-        N = self.vertices
-        G = self.graph
-        distances = np.ones((N + 1, N + 1)) * np.inf  # # distances[i, j] 表示i为起点到j的最短路 。 应当为对称矩阵
-        distances[np.diag_indices_from(distances)] = 0  # 自己到自己距离为0
-        paths = np.ones((N + 1, N + 1)) * (-1)  # path[i, j] 表示i为起点，到达j的最短路上，最后一个中转节点。
-        # 初始化一个直接连边最短路
-        for i in range(1, N + 1):
-            for edge in G[i]:
-                distances[i, edge[0]] = edge[1]
-                paths[i, edge[0]] = i  # 经过零次中转即可。
-        # 算法正式开始
-        for k in range(1, N + 1):  # 中间点
-            for i in range(1, N + 1):  # 起点
-                for j in range(1, N + 1):  # 终点
-                    new_cost = distances[i, k] + distances[k, j]
-                    if new_cost < distances[i, j]:
-                        distances[i, j] = new_cost
-                        paths[i, j] = k  # 中转节点
 
-        return distances, paths
+class CarpSolution:
+    def __init__(self, routes, costs):
+        self.routes = routes
+        self.costs = costs
 
-    def path_scanning(self, distances):
-        unserviced = self.task_edges  # 注意，内部的由于没有变过，所以浅拷贝。
-        graph = self.graph
-        depot = self.depot
-        capacity = self.capacity
+    def __str__(self):
+        routes = self.routes
+        costs = self.costs
+        res = "s "
+        for route in routes:
+            res += "0,"
+            for task_edge in route:
+                res += f"({task_edge[0]},{task_edge[1]}),"
+            res += "0,"
+        res = res[:len(res) - 1]  # 多余逗号
+        return res + f"\nq {int(costs):d}"
+
+
+class PathScanningHeuristic:
+    def __init__(self, carp_instance):
+        self.carp_instance = carp_instance
+
+    def betterThan(self, new_edge, old_edge, load, capacity, depot, distances):
+        diff_ratio = new_edge[3] / new_edge[2] - old_edge[3] / old_edge[2]
+        diff_distance = distances[new_edge[0], depot] - distances[old_edge[0], depot]
+        full_ratio = load / capacity
+        assert 0 <= full_ratio <= 1
+        return diff_distance if full_ratio > 0.5 else -diff_distance
+
+    def path_scanning(self):
+        distances = self.carp_instance.distances
+        unserviced = copy.deepcopy(self.carp_instance.task_edges)
+        depot = self.carp_instance.depot
+        capacity = self.carp_instance.capacity
 
         routes = []
         costs = 0
@@ -113,7 +148,7 @@ class CarpInstance:
                             d = new_dist
                             u = new_edge
                             u_remove = task_edge
-                        elif new_dist == d and betterThan(new_edge, u, load, capacity, depot, distances):
+                        elif new_dist == d and self.betterThan(new_edge, u, load, capacity, depot, distances):
                             u = new_edge
                             u_remove = task_edge
                 if d == np.inf:
@@ -128,7 +163,7 @@ class CarpInstance:
             cost += distances[current_end, depot]  # 回到起点
             routes.append(route)
             costs += cost
-        return routes, costs
+        return CarpSolution(routes, costs)
 
 
 if __name__ == '__main__':
@@ -156,18 +191,8 @@ if __name__ == '__main__':
     # 解析参数步骤
     args = parser.parse_args()
     # print(type(args.carp_instance))
-    carp_instance = CarpInstance().with_file(args.carp_instance)
+    carp_instance = CarpInstance().with_file(args.carp_instance).with_distances_calculated()
     # print(carp_instance)
-    distances, paths = carp_instance.bellman_ford()
-    routes, costs = carp_instance.path_scanning(distances)
-    # print(routes)
-    # print(costs)
-    line = "s "
-    for route in routes:
-        line += "0,"
-        for task_edge in route:
-            line += f"({task_edge[0]},{task_edge[1]}),"
-        line += "0,"
-    line = line[:len(line) - 1]  # 多余逗号
-    print(line)
-    print(f"q {int(costs):d}")
+    carp_solver = PathScanningHeuristic(carp_instance)
+    solution = carp_solver.path_scanning()
+    print(solution)

@@ -35,20 +35,41 @@ def floyd(N, G):
 
 
 class CarpInstance:
-    def __init__(self):
-        self.name = "default"
-        self.vertices = 0
-        self.depot = 0
-        self.required_edges = 0
-        self.non_required_edges = 0
-        self.vehicles = 0
-        self.capacity = 0
-        self.total_cost_of_required_edges = 0
-        self.graph = None  # 每一个是邻接表。邻居的表示是 other, cost, demand. 为了效率不做面向对象。
-        self.task_edges = []
-        self.distances = None
+    def __init__(self, name="default", vertices=0, depot=0, required_edges=0, non_required_edges=0,
+                 vehicles=0, capacity=0, total_cost_of_required_edges=0, graph=None,
+                 task_edges=None, distances=None):
+        if task_edges is None:
+            task_edges = []
+        self.name = name
+        self.vertices = vertices
+        self.depot = depot
+        self.required_edges = required_edges
+        self.non_required_edges = non_required_edges
+        self.vehicles = vehicles
+        self.capacity = capacity
+        self.total_cost_of_required_edges = total_cost_of_required_edges
+        self.graph = graph  # 每一个是邻接表。邻居的表示是 other, cost, demand. 为了效率不做面向对象。
+        self.task_edges = task_edges
+        self.distances = distances
+
+    def copy(self):
+        """
+        复制一份自身，以便修改而不影响原始问题。
+        比如需要得到子图；
+        比如需要临时修改容量后跑 Path Scanning，以便得到一个 giant solution
+        :return:
+        """
+        return CarpInstance(self.name, self.vertices, self.depot, self.required_edges, self.non_required_edges,
+                            self.vehicles, self.capacity
+                            , self.total_cost_of_required_edges,
+                            copy.deepcopy(self.graph), copy.deepcopy(self.task_edges), copy.deepcopy(self.distances))
 
     def with_file(self, filename: str):
+        """
+        遵循数据集的格式要求，读取carp问题。
+        :param filename:
+        :return:
+        """
         with open(filename) as file:
             lines = file.readlines()
         self.name = re.split("\\s+", lines[0])[-2]
@@ -97,7 +118,18 @@ class CarpSolution:
         self.routes = routes
         self.costs = costs
 
+    def to_task_edges(self):
+        pass
+
+    @staticmethod
+    def from_task_edges():
+        pass
+
     def __str__(self):
+        """
+        按照 OJ 格式要求输出解。
+        :return:
+        """
         routes = self.routes
         costs = self.costs
         res = "s "
@@ -110,7 +142,27 @@ class CarpSolution:
         return res + f"\nq {int(costs):d}"
 
 
-class PathScanningHeuristic:
+class SolutionOperators:
+    """
+    对 Carp 解进行修改，以便优化算法可以优化。
+    """
+    def __init__(self, carp_instance):
+        self.carp_instance = carp_instance
+    def routes2task_edges(self):
+        pass
+    def task_edges2routes(self):
+        pass
+
+class HeuristicSearch:
+    """
+    对 Carp 问题进行基本启发式搜索，尝试得到一个基本的解。
+    启发式不是元启发式，启发式是根据领域知识人类编撰的，但是无法被证明最优性，甚至不知道是不是朝着最优方向走。
+    下面的 LocalSearch 类和 EvolutionarySearch 才是元启发式算法。
+    Carp 的启发式算法主要有 augment-merge, path-scanning, construct and strike, Ulusoy 's tour splitting, augment-insert 等。
+    我们重点掌握实现了 path-scanning.
+    由于 carp 问题是 中国乡土(rural，表示并不是所有地方都是邮递员管辖的区域)邮递员问题 的一般形式，所以也可以用 path-scanning 解 中国乡土邮递员问题， 方法是设置 capacity 为无穷大。
+    如果需要解更加特殊的 中国邮递员问题 ， 可以 每一条边都设置一个任务。
+    """
     def __init__(self, carp_instance):
         self.carp_instance = carp_instance
 
@@ -166,6 +218,26 @@ class PathScanningHeuristic:
         return CarpSolution(routes, costs)
 
 
+class LocalSearch:
+    """
+    使用局部搜索
+    """
+    pass
+
+
+class EvolutionarySearch:
+    """
+    使用演化计算
+    """
+    def __init__(self, carp_instance, population_size, budget, probability_local_search):
+        self.carp_instance = carp_instance
+        self.population_size = population_size
+        self.budget = budget
+        self.probability_local_search = probability_local_search
+    def optimize(self):
+        pass
+
+
 if __name__ == '__main__':
     # 创建解析步骤
     parser = argparse.ArgumentParser(description='容量限制约束弧路径问题求解器。', epilog='So what can I help you? ')
@@ -193,6 +265,11 @@ if __name__ == '__main__':
     # print(type(args.carp_instance))
     carp_instance = CarpInstance().with_file(args.carp_instance).with_distances_calculated()
     # print(carp_instance)
-    carp_solver = PathScanningHeuristic(carp_instance)
+    # carp_instance2 = carp_instance.copy()
+    # carp_instance2.capacity = 3
+    # carp_solver = PathScanningHeuristic(carp_instance2)
+    carp_solver = HeuristicSearch(carp_instance)
     solution = carp_solver.path_scanning()
     print(solution)
+
+

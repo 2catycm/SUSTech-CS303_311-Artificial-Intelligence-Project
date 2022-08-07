@@ -245,6 +245,7 @@ class SolutionOperators:
             split_points.insert(0, parent)
             current = parent - 1  # 上一步, 最后一步变成0
         # 4. 根据切割面获得结果。比如，上一步求出了 1, 5, 8为分割点
+        costs = distances[2 * N]
         routes = []
         current = 0  # 指向 task_edges
         for i in range(1, len(split_points)):  # 切割点第一个总是1， 不管。
@@ -255,7 +256,7 @@ class SolutionOperators:
                 current += 1
             routes.append(route)
 
-        return routes, distances[2 * N]
+        return routes, costs
 
     def ulusoy_split_DP(self, task_edges, carp_instance):
         """
@@ -272,7 +273,66 @@ class SolutionOperators:
         :param carp_instance:
         :return:
         """
-        pass
+        distances = carp_instance.distances
+        depot = carp_instance.depot
+        capacity = carp_instance.capacity
+        N = len(task_edges)  # 任务数量
+        # 1. 求解容量约束的固定排序决策问题。
+        opt = np.ones((N, capacity + 1)) * np.inf  # opt[i, j] 已知0：i的节点， 在j的容量限制下的最好表现
+        go_back = np.zeros((N, capacity + 1), dtype=bool)  # go_back[i, j】 已知0：i的几点，在j容量下，上一步i-1的位置要不要回城
+        for c in range(capacity + 1):
+            if c >= task_edges[0][3]:  # task_edges[0].demand
+                opt[0, c] = 0
+        for i in range(1, N):
+            task_edge_i_1 = task_edges[i - 1]
+            task_edge_i = task_edges[i]
+            for j in range(capacity + 1):
+                # 选择回城。 opt的容量充满
+                go_back_cost = distances[task_edge_i_1[1], depot]  # 从上一次的end回城
+                go_back_cost += distances[depot, task_edge_i[0]]  # 来到这一次的起点
+                go_back_cost += opt[i - 1, capacity]
+                if j < task_edge_i[3]:
+                    opt[i, j] = go_back_cost
+                    go_back[i, j] = True
+                else:
+                    # 选择不回城。opt的容量减少
+                    remain_cost = distances[task_edge_i_1[1], task_edge_i[0]]  # 直接到达下一个任务点
+                    remain_cost += opt[i - 1, j - task_edge_i[3]]  # task_edge_i.demand 注意溢出
+                    # 两边之和大于第三边，有了容量约束之后，这个不成立
+                    if remain_cost > go_back_cost:
+                        opt[i, j] = go_back_cost
+                        go_back[i, j] = True
+                    else:
+                        opt[i, j] = remain_cost
+                        go_back[i, j] = False
+        # 2. 恢复切割。 比如，上一步求出了 4, 3, 2, 1 应该分割，应该恢复容量等
+        current_node = N - 1
+        current_cap = capacity
+        split_points = [N]
+        while current_node > 0:
+            assert current_cap >= 0
+            if go_back[current_node, current_cap]:
+                split_points.append(current_node)
+            else:
+                current_cap -= task_edges[current_node][3]  # 剪掉demand
+            current_node -= 1
+        # 3. 根据切割面获得结果。比如，上一步求出了 0,1,2 中， 1前，2前均要分割
+        routes = []
+        current_node = 0
+        for split_point in split_points:
+            route = []
+            while current_node < split_point:
+                route.append(task_edges[current_node])
+                current_node += 1
+            routes.append(route)
+
+        # 4. 规整化 cost
+        costs = opt[N - 1, capacity]
+        for i, task_edge in enumerate(task_edges):
+            costs += task_edge[2]  # task_edge.cost 这是这个顺序下不可避免的cost
+        costs += distances[depot, task_edges[0][0]]
+        costs += distances[task_edges[-1][1], depot]
+        return routes, costs
 
     def operator_interface(self, operation_type: str, task_edges: List[List[int]], i=-1, j=-1):
         """

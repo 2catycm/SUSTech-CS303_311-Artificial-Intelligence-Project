@@ -50,8 +50,8 @@ def getLogger(
     return ret
 
 
-logger = getLogger(__name__, logging.DEBUG)  # 调试使用这个级别
-# logger = getLogger(__name__, logging.CRITICAL) # 上交代码时使用这个级别
+# logger = getLogger(__name__, logging.DEBUG)  # 调试使用这个级别
+logger = getLogger(__name__, logging.CRITICAL) # 上交代码时使用这个级别
 
 # 时间控制模块
 import time
@@ -68,9 +68,12 @@ class TimeController():
     def set_time_limit(self, time_limit):
         self.time_limit = time_limit
 
-    def have_more_time(self, ratio=0.8, 漏统计的时间=0.2):
+    def have_more_time(self, ratio=0.9, 漏统计的时间=0.1):
         used = time.time() - self.time_start
         return used + 漏统计的时间 < ratio * self.time_limit
+
+    def get_time_used(self):
+        return time.time() - self.time_start
 
 
 time_controller = TimeController()
@@ -268,8 +271,10 @@ class SolutionOperators:
         :return costs: 最优路径分割方案的代价
         """
         if carp_instance.capacity <= 2 * carp_instance.vertices:
-            return self._ulusoy_split_DP(task_edges, carp_instance)
+            return self._ulusoy_split_SSP(task_edges, carp_instance)
+            # return self._ulusoy_split_DP(task_edges, carp_instance)
         else:
+            # return self._ulusoy_split_DP(task_edges, carp_instance)
             return self._ulusoy_split_SSP(task_edges, carp_instance)
 
     def _ulusoy_split_SSP(self, task_edges, carp_instance):
@@ -287,21 +292,25 @@ class SolutionOperators:
         # 1. 建图
         digraph = [[] for i in range(2 * N + 1)]  # 节点数量比较多。 有向图。
         for i in range(N):
-            task_i = task_edges[i]
-            for j in range(i, N):
-                task_j = task_edges[j]
+            task_edge_i = task_edges[i]
+            current_end = task_edge_i[1]  # task_edge_i.end
+            cost = distances[depot, task_edge_i[0]]  # task_edge_i.start
+            cost += task_edge_i[2]  # task_edge_i.cost
+            cost += distances[current_end, depot]
+            demand = task_edge_i[3]  # task_edge_i.demand
+            assert demand <= capacity
+            digraph[2 * i + 1].append([2 * i + 2, cost])  # 加入这一种到达方案
+            # 初始代价
+            for j in range(i + 1, N):
+                task_edge_j = task_edges[j]
                 # 两两组合的一种枚举。包括自己到自己。
                 # 表示从这个任务开始，到这个任务结束，中间没有回仓库休息。
-                current = depot
-                cost = 0
-                demand = 0
-                for k in range(i, j + 1):
-                    task_edge_k = task_edges[k]
-                    cost += distances[current, task_edge_k[0]]  # task_edge_k.start
-                    cost += task_edge_k[2]  # task_edge_k.cost
-                    demand += task_edge_k[3]  # task_edge_k.demand
-                    current = task_edge_k[1]  # task_edge_k.end
-                cost += distances[current, depot]
+                cost -= distances[current_end, depot]
+                cost += distances[current_end, task_edge_j[0]]  # task_edge_j.start
+                cost += task_edge_j[2]  # task_edge_j.cost
+                current_end = task_edge_j[1]  # task_edge_j.end
+                cost += distances[current_end, depot]
+                demand += task_edge_j[3]  # task_edge_i.demand
                 if demand <= capacity:
                     # 是一种可能情况，所以加入到图中。
                     digraph[2 * i + 1].append([2 * j + 2, cost])  # 加入这一种到达方案
@@ -606,9 +615,12 @@ class LocalSearch:
         routes, costs = initial_solution.routes, initial_solution.costs
         new_routes, new_costs = None, None
         t = 0  # time step
-        T = schedule(t)  # temperature
+        # T = schedule(t)  # temperature
+        better_t = lambda t: time_controller.get_time_used() / time_controller.time_limit * math.log(
+            1e-7) / math.log(0.999)
+        T = schedule(better_t(t))  # temperature
         while not halt(T) and time_controller.have_more_time():
-            T = schedule(t)
+            T = schedule(better_t(t))
             diff = np.inf
             trys = 10
             while diff >= 0 and trys > 0 and math.exp(-diff / T) <= random.random():

@@ -15,15 +15,15 @@ class MyTestCase(unittest.TestCase):
     def test_can_path_scanning(self):
         for i, dat in enumerate(dats):
             carp_instance = CarpInstance().with_file(str(dat)).with_distances_calculated()
-            carp_solver = HeuristicSearch(carp_instance)
+            carp_solver = HeuristicSearch()
             solution = carp_solver.path_scanning_old()
             self.assertEqual(carp_instance.costs_of(solution.routes), solution.costs)
 
     def test_can_ulusoy_split(self):
         for i, dat in enumerate(dats):
             carp_instance = CarpInstance().with_file(str(dat)).with_distances_calculated()
-            carp_solver = HeuristicSearch(carp_instance)
-            solution = carp_solver.path_scanning_old()
+            carp_solver = HeuristicSearch()
+            solution = carp_solver.path_scanning_old(carp_instance)
             task_edges = solution_operators.merge(solution.routes)
             routes, costs = solution_operators.ulusoy_split(task_edges, carp_instance)
             self.assertEqual(carp_instance.costs_of(routes), costs)
@@ -31,7 +31,7 @@ class MyTestCase(unittest.TestCase):
     def test_can_operate(self):
         for i, dat in enumerate(dats):
             carp_instance = CarpInstance().with_file(str(dat)).with_distances_calculated()
-            carp_solver = HeuristicSearch(carp_instance)
+            carp_solver = HeuristicSearch()
             solution = carp_solver.path_scanning_old()
             task_edges_old = solution_operators.merge(solution.routes)
             task_edges_new, i, j = solution_operators.operator_interface('single_insertion', task_edges_old)

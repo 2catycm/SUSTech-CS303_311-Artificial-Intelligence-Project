@@ -2,8 +2,8 @@ from pathlib import Path
 import os
 import time
 
-# time_limit_seconds = 60
-time_limit_seconds = 5
+time_limit_seconds = 60
+# time_limit_seconds = 5
 random_seed = 0
 solver_location = "../submit/CARP_solver.py"
 data_location = "CARP_samples"
@@ -41,5 +41,9 @@ if __name__ == '__main__':
     # 使用 Ulusoy split   [309, 368, 6446, 4188, 344, 472, 212] 优化了一点点
 
     # 五秒模拟退火效果：     [285, 323, 6446, 4193, 349, 486, 206]
+    # 五秒SSP 50, 116, 0, 5,1， 4，18
+    #                   [300, 323, 6446, 4193, 349, 486, 206]  # 这些操作对6446没有用
+    # n立方算法大幅优化为n方：133, 230, 7, 30, 14, 16, 58
+    #                   [292, 323, 6416, 4159, 349, 482, 186]
 
     # 同学级最优解        [275, 316, 5018, 3548, 279, 400, 173]

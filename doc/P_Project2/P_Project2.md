@@ -12,7 +12,11 @@
 
 叶璨铭，[12011404@mail.sustech.edu.cn](mailto:12011404@mail.sustech.edu.cn)
 
+note: As **"Project-CARP.pdf" just required "A solver description" with " the core idea of your design, explanation each component of your algorithm, illustration of the algorithm structure and the pseudo code"**, this submit version report is as simple as possible. For detailed report with literature review\work flow\detailed experiment design, you can view the detailed version of this document. 
+
 ## Introduction
+
+Capacitated Arc Routing Problem (CARP) is a well known combinatorial problem that requires the identification 
 
 ## Methodology
 

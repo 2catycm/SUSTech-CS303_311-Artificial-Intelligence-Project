@@ -1,5 +1,3 @@
-import argparse
-import time
 import random
 import math
 import numpy as np
@@ -7,7 +5,8 @@ import re
 import copy
 from typing import List
 
-# 参考 https://blog.m-jay.cn/?p=410 用于debug
+# 日志输出模块：用于debug
+# 参考 https://blog.m-jay.cn/?p=410
 import logging
 
 # 此处修改颜色
@@ -39,19 +38,23 @@ def getLogger(
         fmt: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         fmt_date: str = "%H:%M:%S"
 ) -> logging.Logger:
-    fmter = logging.Formatter(fmt, fmt_date)
+    formatter = logging.Formatter(fmt, fmt_date)
     ch = logging.StreamHandler()
     ch.setLevel(level)
-    ch.setFormatter(fmter)
+    ch.setFormatter(formatter)
     ch.addFilter(filter)
 
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-    logger.addHandler(ch)
-    return logger
+    ret = logging.getLogger(name)
+    ret.setLevel(level)
+    ret.addHandler(ch)
+    return ret
 
 
-logger = getLogger(__name__, logging.DEBUG)
+logger = getLogger(__name__, logging.DEBUG)  # 调试使用这个级别
+# logger = getLogger(__name__, logging.CRITICAL) # 上交代码时使用这个级别
+
+# 时间控制模块
+import time
 
 
 class TimeController():
@@ -73,6 +76,7 @@ class TimeController():
 time_controller = TimeController()
 
 
+# 基础图论算法
 def floyd(N, G):
     """
     解决多源最短路问题的弗洛伊德算法。
@@ -109,6 +113,12 @@ def floyd(N, G):
     return distances, paths
 
 
+# 基础数据结构
+class LruCache:
+    pass
+
+
+# 问题定义
 class CarpInstance:
     def __init__(self, name="default", vertices=0, depot=0, required_edges=0, non_required_edges=0,
                  vehicles=0, capacity=0, total_cost_of_required_edges=0, graph=None,
@@ -203,6 +213,7 @@ class CarpInstance:
         return s + ")"
 
 
+# 问题的解的定义
 class CarpSolution:
     """
     简单的entity，提供 str 变换
@@ -232,11 +243,14 @@ class CarpSolution:
         return res + f"\nq {int(costs):d}"
 
 
+# 问题的解的变换算子
 class SolutionOperators:
     """
     对 Carp 解进行修改，以便优化算法可以优化。
     """
 
+    # 重点：解的排序分割表示（routes， 任务边集合的集合）和排序表示（route或者trip，或者giant route， 是任务边的集合） 是两种等效的编码。
+    # 但是转换的复杂度不同。
     def merge(self, routes):
         """
         从多个 route 的集合 合并(merge) 为一条 "giant route" （不符合容量约束）
@@ -254,11 +268,11 @@ class SolutionOperators:
         :return costs: 最优路径分割方案的代价
         """
         if carp_instance.capacity <= 2 * carp_instance.vertices:
-            return self.ulusoy_split_DP(task_edges, carp_instance)
+            return self._ulusoy_split_DP(task_edges, carp_instance)
         else:
-            return self.ulusoy_split_SSP(task_edges, carp_instance)
+            return self._ulusoy_split_SSP(task_edges, carp_instance)
 
-    def ulusoy_split_SSP(self, task_edges, carp_instance):
+    def _ulusoy_split_SSP(self, task_edges, carp_instance):
         """
         转换为图的单源最短路问题求解。
         转换为图需要 O()
@@ -325,7 +339,7 @@ class SolutionOperators:
 
         return routes, costs
 
-    def ulusoy_split_DP(self, task_edges, carp_instance):
+    def _ulusoy_split_DP(self, task_edges, carp_instance):
         """
         本算法实现为 O(nC), 如果C不大可以考虑。
         我们使用动态规划算法实现。
@@ -402,6 +416,7 @@ class SolutionOperators:
         costs += distances[task_edges[-1][1], depot]
         return routes, costs
 
+    # 第一类操作子，对排序表示的编码进行操作
     def operator_interface(self, operation_type: str, task_edges: List[List[int]], i=-1, j=-1):
         """
         算子的非原地操作的接口。
@@ -469,11 +484,13 @@ class SolutionOperators:
             self.flip(task_edges, i)
             return old_routes, old_costs
         return new_routes, new_costs
+    # 第二类操作子，比如 reversed。
 
 
 solution_operators = SolutionOperators()
 
 
+# 启发式搜索
 class HeuristicSearch:
     """
     对 Carp 问题进行基本启发式搜索，尝试得到一个基本的解。
@@ -562,61 +579,63 @@ class HeuristicSearch:
 heuristic_search = HeuristicSearch()
 
 
+# 局部搜索
 class LocalSearch:
     """
-    使用局部搜索
+    使用局部搜索。
     """
 
     def simulated_annealing(self, carp_instance: CarpInstance,
-                            initial_task_edges: List[List[int]] = None,
+                            initial_solution: CarpSolution,
                             schedule=lambda t: 0.999 ** t,
                             halt=lambda T: T < 1e-7,
-                            accept_rate=1):
+                            accept_rate=1,
+                            log_interval=200):
         """
-        模拟退火算法
+        模拟退火算法（分割排序版）。
+            解的 DNA 表示为 完整的 分割排序表示，也就是 任务边集合的集合。
         :param carp_instance:
-        :param initial_task_edges:
+        :param initial_solution: 是 任务的集合。
         :param schedule:
         :param halt:
-        :return:
-        """
-        # state = initial
-        # t = 0  # time step
-        # T = schedule(t)  # temperature
-        # old_value = state.value()
-        # while not halt(T):
-        #     T = schedule(t)
-        #     diff = np.inf
-        #     trys = 10
-        #     while diff >= 0 and trys > 0 and np.exp(-diff / T) <= np.random.uniform():  #
-        #         new_state = state.local_search()
-        #         new_value = new_state.value()
-        #         diff = new_value - old_value
-        #         trys -= 1
-        #     if diff >= 0 and trys <= 0:
-        #         # print(diff)
-        #         continue
-        #     state = new_state
-        #     old_value = new_value
-        #
-        #     # update time and temperature
-        #     if t % log_interval == 0:
-        #         print(f"step {t}: T={T}, current_value={state.value()}")
-        #     t += 1
-        #     T = schedule(t)
-        # print(f"step {t}: T={T}, current_value={state.value()}")
-        # return state, f
-        pass
-
-    def liu_ray_local_search(self, carp_instance: CarpInstance, initial: List[List[int]] = None):
-        """
-        使用 Liu&Ray 的局部搜索方法
+        :param accept_rate:
+        :param log_interval:
         :return routes:
         :return costs:
         """
-        state11, i11, j11 = solution_operators.operator_interface('single_insertion', initial)
-        state12, i12, j12 = solution_operators.operator_interface('double_insertion', initial)
-        state13, i13, j13 = solution_operators.operator_interface('swap', initial)
+        routes, costs = initial_solution.routes, initial_solution.costs
+        new_routes, new_costs = None, None
+        t = 0  # time step
+        T = schedule(t)  # temperature
+        while not halt(T) and time_controller.have_more_time():
+            T = schedule(t)
+            diff = np.inf
+            trys = 10
+            while diff >= 0 and trys > 0 and math.exp(-diff / T) <= random.random():
+                new_routes, new_costs = self.one_step_local_search(carp_instance, solution_operators.merge(routes))
+                diff = new_costs - costs
+                trys -= 1
+            if diff >= 0 and trys <= 0:
+                continue
+            routes, costs = new_routes, new_costs
+
+            # update time and temperature
+            if t % log_interval == 0:
+                logger.info(f"step {t}: T={T}, current_value={costs}")
+            t += 1
+            T = schedule(t)
+        logger.warning(f"finally: step {t}: T={T}, current_value={costs}")
+        return routes, costs
+
+    def one_step_local_search(self, carp_instance: CarpInstance, initial_task_edges: List[List[int]]):
+        """
+        Liu&Ray 局部搜索方法 的 第一步。同样是我们模拟退火找邻居的一步。
+        :return routes:
+        :return costs:
+        """
+        state11, i11, j11 = solution_operators.operator_interface('single_insertion', initial_task_edges)
+        state12, i12, j12 = solution_operators.operator_interface('double_insertion', initial_task_edges)
+        state13, i13, j13 = solution_operators.operator_interface('swap', initial_task_edges)
         routes11, costs11 = solution_operators.better_flip(carp_instance, state11, j11)
         routes12, costs12 = solution_operators.better_flip(carp_instance, state12, j12)
         routes13, costs13 = solution_operators.better_flip(carp_instance, state13, j13)
@@ -628,6 +647,15 @@ class LocalSearch:
             routes, costs = routes13, costs13
         else:
             assert False
+        return routes, costs
+
+    def liu_ray_local_search(self, carp_instance: CarpInstance, initial: List[List[int]] = None):
+        """
+        使用 Liu&Ray 的局部搜索方法
+        :return routes:
+        :return costs:
+        """
+        routes, costs = self.one_step_local_search(carp_instance, initial)
         N_trips = len(routes)
         l_times = int(min(N_trips * (N_trips - 1) / 2, 50))  # number of attempts
         times = 0
@@ -650,22 +678,25 @@ class LocalSearch:
 local_search = LocalSearch()
 
 
+# 演化计算
 class EvolutionarySearch:
     """
     使用演化计算
     """
 
-    def __init__(self, carp_instance, population_size, budget, probability_local_search):
-        self.carp_instance = carp_instance
-        self.population_size = population_size
-        self.budget = budget
-        self.probability_local_search = probability_local_search
+    def simple_evolution_search(self, carp_instance, population_size, budget, probability_local_search):
+        pass
 
-    def optimize(self):
+    def liu_ray_global_search(self, carp_instance, population_size, budget, probability_local_search):
+        pass
+
+    def mei_tang_yao_global_search(self):
         pass
 
 
+# 参数解析，主方法
 def main():
+    import argparse
     # 创建解析步骤
     parser = argparse.ArgumentParser(description='容量限制约束弧路径问题求解器。', epilog='So what can I help you? ')
 
@@ -696,10 +727,10 @@ def main():
 
     solution = heuristic_search.path_scanning_old(carp_instance)
     assert solution.costs == carp_instance.costs_of(solution.routes)
-    # print(solution)
     task_edges = solution_operators.merge(solution.routes)
     routes, costs = solution_operators.ulusoy_split(task_edges, carp_instance)
-    assert carp_instance.costs_of(routes) == costs
+    initial = CarpSolution(routes, costs)
+    routes, costs = local_search.simulated_annealing(carp_instance, initial)
     print(CarpSolution(routes, costs))
     logger.info("finished")
 

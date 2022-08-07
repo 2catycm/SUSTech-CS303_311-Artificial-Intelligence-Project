@@ -8,6 +8,25 @@ import copy
 from typing import List
 
 
+class TimeController():
+    def __init__(self):
+        self.time_start = 0.0
+        self.time_limit = 0.0
+
+    def start_to_time(self):
+        self.time_start: float = time.time()
+
+    def set_time_limit(self, time_limit):
+        self.time_limit = time_limit
+
+    def have_more_time(self, ratio=0.8, 漏统计的时间=0.2):
+        used = time.time() - self.time_start
+        return used + 漏统计的时间 < ratio * self.time_limit
+
+
+time_controller = TimeController()
+
+
 def floyd(N, G):
     """
     解决多源最短路问题的弗洛伊德算法。
@@ -442,16 +461,12 @@ class HeuristicSearch:
         diff_distance = distances[new_edge[0], depot] - distances[old_edge[0], depot]
         return diff_distance > 0 if full_ratio < 0.5 else diff_distance < 0
 
-    def path_scanning(self, carp_instance, evaluator_index: int = 4):
+    def path_scanning(self, distances, task_edges, depot, capacity, evaluator_index: int = 4):
+        unserviced = copy.deepcopy(task_edges)
         evaluators = [self.maximize_dist, self.minimize_dist, self.maximize_yield, self.minimize_yield,
                       self.half_full_dist]
         assert 0 <= evaluator_index < len(evaluators)
         evaluator = evaluators[evaluator_index]
-        distances = carp_instance.distances
-        unserviced = copy.deepcopy(carp_instance.task_edges)
-        depot = carp_instance.depot
-        capacity = carp_instance.capacity
-
         routes = []
         costs = 0
         while len(unserviced) != 0:
@@ -489,6 +504,13 @@ class HeuristicSearch:
             routes.append(route)
             costs += cost
         return CarpSolution(routes, costs)
+
+    def path_scanning_old(self, carp_instance, evaluator_index: int = 4):
+        distances = carp_instance.distances
+        task_edges = carp_instance.task_edges
+        depot = carp_instance.depot
+        capacity = carp_instance.capacity
+        return self.path_scanning(distances, task_edges, depot, capacity)
 
 
 heuristic_search = HeuristicSearch()
@@ -535,10 +557,10 @@ class LocalSearch:
                 for j in j_range:
                     times += 1
                     if times > l_times:
-                        raise Exception()
+                        raise Exception()  # TODO
 
         finally:
-            pass
+            pass  # TODO
 
 
 local_search = LocalSearch()
@@ -584,9 +606,11 @@ def main():
     # 解析参数步骤
     args = parser.parse_args()
     random.seed(args.random_seed)  # 也可以不加，避免被攻击。
+    time_controller.set_time_limit(args.termination)
+    time_controller.start_to_time()
     carp_instance = CarpInstance().with_file(args.carp_instance).with_distances_calculated()
 
-    solution = heuristic_search.path_scanning(carp_instance)
+    solution = heuristic_search.path_scanning_old(carp_instance)
     assert solution.costs == carp_instance.costs_of(solution.routes)
     # print(solution)
     task_edges = solution_operators.merge(solution.routes)

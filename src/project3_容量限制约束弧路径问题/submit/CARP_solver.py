@@ -1,5 +1,7 @@
 import random
 import math
+from functools import lru_cache
+
 import numpy as np
 import re
 import copy
@@ -50,8 +52,8 @@ def getLogger(
     return ret
 
 
-# logger = getLogger(__name__, logging.DEBUG)  # 调试使用这个级别
-logger = getLogger(__name__, logging.CRITICAL) # 上交代码时使用这个级别
+logger = getLogger(__name__, logging.DEBUG)  # 调试使用这个级别
+# logger = getLogger(__name__, logging.CRITICAL) # 上交代码时使用这个级别
 
 # 时间控制模块
 import time
@@ -206,6 +208,7 @@ class CarpInstance:
         s = "carp_instance("
         for name, value in vars(self).items():
             if name == 'graph': continue
+            if name == 'distances': continue  # 避免hash的时候需要n方时间
             s += f"{name}={value}, "
             if len(s) - last_endl >= 100:
                 last_endl = len(s)
@@ -214,6 +217,9 @@ class CarpInstance:
         for v in range(1, self.vertices + 1):
             s += f"adj({v}): {self.graph[v]}\n"
         return s + ")"
+
+    def __hash__(self):
+        return hash(self.__str__())
 
 
 # 问题的解的定义
@@ -245,6 +251,17 @@ class CarpSolution:
         res = res[:len(res) - 1]  # 多余逗号
         return res + f"\nq {int(costs):d}"
 
+    def __hash__(self):
+        return hash(self.__str__())
+
+
+class TaskEdges:
+    def __init__(self, task_edges):
+        self.task_edges = task_edges
+
+    def __hash__(self):
+        return hash(str(self.task_edges))
+
 
 # 问题的解的变换算子
 class SolutionOperators:
@@ -265,14 +282,20 @@ class SolutionOperators:
         return task_edges
 
     def ulusoy_split(self, task_edges, carp_instance):
+        return self._ulusoy_split(TaskEdges(task_edges), carp_instance)
+
+    @lru_cache(maxsize=64)
+    def _ulusoy_split(self, task_edges:TaskEdges, carp_instance:CarpInstance):
+        task_edges = task_edges.task_edges
         """
         使用 Ulusoy Split 将 “giant route" 分割为 route 的集合，使得分割后符合容量约束且 costs 最低。
         :return routes: 最优路径分割方案
         :return costs: 最优路径分割方案的代价
         """
-        if carp_instance.capacity <= 2 * carp_instance.vertices:
-            return self._ulusoy_split_SSP(task_edges, carp_instance)
-            # return self._ulusoy_split_DP(task_edges, carp_instance)
+        if carp_instance.capacity / 9 <= carp_instance.vertices / 7:
+            # return self._ulusoy_split_SSP(task_edges, carp_instance)
+            # logger.warning(f"正在使用O(nC)的算法，n={carp_instance.vertices}, C={carp_instance.capacity}")
+            return self._ulusoy_split_DP(task_edges, carp_instance)
         else:
             # return self._ulusoy_split_DP(task_edges, carp_instance)
             return self._ulusoy_split_SSP(task_edges, carp_instance)
@@ -729,10 +752,13 @@ def main():
                              'seed controls all the stochastic behaviors of your solver, such that the same random '
                              'seeds will make your solver produce the same results. If your solver is deterministic, '
                              'it still needs to accept −s <random_seed>, but can just ignore them while solving CARPs')
+    parser.add_argument('-r', dest="accepts_random_seed", action='store_const',
+                        const=True, default=False, help="如果我在debug，当然-s是需要的。如果OJ要抓住我的弱点用数据集攻击我的算法，那么不能让它得逞。这就是鲁棒性。")
     parser.add_argument('--version', action='version', version='version 0.1.0')
     # 解析参数步骤
     args = parser.parse_args()
-    random.seed(args.random_seed)  # 也可以不加，避免被攻击。
+    if args.accepts_random_seed:
+        random.seed(args.random_seed)  # 也可以不加，避免被攻击。
     time_controller.set_time_limit(args.termination)
     time_controller.start_to_time()
     carp_instance = CarpInstance().with_file(args.carp_instance).with_distances_calculated()

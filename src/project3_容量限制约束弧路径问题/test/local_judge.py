@@ -2,9 +2,10 @@ from pathlib import Path
 import os
 import time
 
-time_limit_seconds = 60
-# time_limit_seconds = 5
+# time_limit_seconds = 60
+time_limit_seconds = 5
 random_seed = 0
+accepts_random_seed = True
 solver_location = "../submit/CARP_solver.py"
 data_location = "CARP_samples"
 if __name__ == '__main__':
@@ -22,6 +23,8 @@ if __name__ == '__main__':
         param = f'"{dat}" '
         param += f'-t {time_limit_seconds} '
         param += f'-s {random_seed} '
+        if accepts_random_seed:
+            param += f'-r '
         with os.popen(f'python "{solver_location}" {param}', 'r') as p:
             start = time.time()
             result = p.readlines()  # 这一步就结束了
@@ -43,7 +46,11 @@ if __name__ == '__main__':
     # 五秒模拟退火效果：     [285, 323, 6446, 4193, 349, 486, 206]
     # 五秒SSP 50, 116, 0, 5,1， 4，18
     #                   [300, 323, 6446, 4193, 349, 486, 206]  # 这些操作对6446没有用
-    # n立方算法大幅优化为n方：133, 230, 7, 30, 14, 16, 58
+    # n立方SSP大幅优化为n方：133, 230, 7, 30, 14, 16, 58
+    # 五秒DP              228, 593, 0, 1, 1, 4, 6
     #                   [292, 323, 6416, 4159, 349, 482, 186]
+    # 五秒混合加缓存       196, 403, 0, 32, 14, 16, 58
+
+    # 60s 退火效果      [283, 323, 5790, 3682, 318, 464, 177]
 
     # 同学级最优解        [275, 316, 5018, 3548, 279, 400, 173]

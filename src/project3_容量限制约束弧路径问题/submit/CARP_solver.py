@@ -285,7 +285,7 @@ class SolutionOperators:
         return self._ulusoy_split(TaskEdges(task_edges), carp_instance)
 
     @lru_cache(maxsize=64)
-    def _ulusoy_split(self, task_edges:TaskEdges, carp_instance:CarpInstance):
+    def _ulusoy_split(self, task_edges: TaskEdges, carp_instance: CarpInstance):
         task_edges = task_edges.task_edges
         """
         使用 Ulusoy Split 将 “giant route" 分割为 route 的集合，使得分割后符合容量约束且 costs 最低。
@@ -556,8 +556,21 @@ class HeuristicSearch:
         diff_distance = distances[new_edge[0], depot] - distances[old_edge[0], depot]
         return diff_distance > 0 if full_ratio < 0.5 else diff_distance < 0
 
-    def path_scanning(self, distances, task_edges, depot, capacity, evaluator_index: int = 4):
-        unserviced = copy.deepcopy(task_edges)
+    def path_scanning(self, distances, task_edges, depot, capacity, evaluator_index: int = 4, no_copy=False):
+        """
+        路径扫描算法。给定 最短距离矩阵、任务边（允许做一个子集）、仓库、容量、评估标准
+        :param distances:
+        :param task_edges:
+        :param depot:
+        :param capacity:
+        :param evaluator_index:
+        :return routes:
+        :return costs:
+        """
+        if not no_copy:
+            unserviced = copy.deepcopy(task_edges)
+        else:
+            unserviced = task_edges
         evaluators = [self.maximize_dist, self.minimize_dist, self.maximize_yield, self.minimize_yield,
                       self.half_full_dist]
         assert 0 <= evaluator_index < len(evaluators)
@@ -598,14 +611,14 @@ class HeuristicSearch:
             cost += distances[current_end, depot]  # 回到起点
             routes.append(route)
             costs += cost
-        return CarpSolution(routes, costs)
+        return routes, costs
 
     def path_scanning_old(self, carp_instance, evaluator_index: int = 4):
         distances = carp_instance.distances
         task_edges = carp_instance.task_edges
         depot = carp_instance.depot
         capacity = carp_instance.capacity
-        return self.path_scanning(distances, task_edges, depot, capacity)
+        return CarpSolution(*self.path_scanning(distances, task_edges, depot, capacity))
 
 
 heuristic_search = HeuristicSearch()
@@ -647,7 +660,9 @@ class LocalSearch:
             diff = np.inf
             trys = 10
             while diff >= 0 and trys > 0 and math.exp(-diff / T) <= random.random():
-                new_routes, new_costs = self.one_step_local_search(carp_instance, solution_operators.merge(routes))
+                # new_routes, new_costs = self.one_step_local_search(carp_instance, solution_operators.merge(routes))
+                # new_routes, new_costs = self.stochastic_one_step_local_search(carp_instance, solution_operators.merge(routes))
+                new_routes, new_costs = self.liu_ray_local_search(carp_instance, solution_operators.merge(routes))
                 diff = new_costs - costs
                 trys -= 1
             if diff >= 0 and trys <= 0:
@@ -684,30 +699,72 @@ class LocalSearch:
             assert False
         return routes, costs
 
+    def stochastic_one_step_local_search(self, carp_instance: CarpInstance, initial_task_edges: List[List[int]]):
+        """
+        增加随机性和多样性，随机选择一个操作。
+        :param carp_instance:
+        :param initial_task_edges:
+        :return:
+        """
+        candidate_algs = ['single_insertion', 'double_insertion', 'swap']
+        algs = random.choice(candidate_algs)
+        state, i, j = solution_operators.operator_interface(algs, initial_task_edges)
+        return solution_operators.better_flip(carp_instance, state, j)
+
     def liu_ray_local_search(self, carp_instance: CarpInstance, initial: List[List[int]] = None):
+        task_edges = initial
+        while True:
+            routes, costs, did_better = self._liu_ray_local_search(carp_instance, task_edges)
+            task_edges = solution_operators.merge(routes)
+            if not (time_controller.have_more_time() and did_better):
+                break
+        return routes, costs
+
+    def _liu_ray_local_search(self, carp_instance: CarpInstance, initial: List[List[int]] = None):
         """
         使用 Liu&Ray 的局部搜索方法
         :return routes:
         :return costs:
+        :return did_better: 确实搜到了更强的解
         """
+        did_better = False
         routes, costs = self.one_step_local_search(carp_instance, initial)
         N_trips = len(routes)
         l_times = int(min(N_trips * (N_trips - 1) / 2, 50))  # number of attempts
         times = 0
-        # 随便选择两个 route（trip）， 重新分配
-        i_range = list(range(N_trips - 1))
-        random.shuffle(i_range)
-        try:
-            for i in i_range:
-                j_range = list(range(i + 1, N_trips))
-                random.shuffle(j_range)
-                for j in j_range:
-                    times += 1
-                    if times > l_times:
-                        raise Exception()  # TODO
+        for times in range(l_times):
+            # 随机选择了 (Ti, Tj) 两个任务，
+            N_trips = len(routes)
+            i = random.randrange(0, N_trips - 1)
+            j = random.randrange(i + 1, N_trips)
 
-        finally:
-            pass  # TODO
+            # 现在要求 重新打乱他们的任务排序
+            # 注意观察一个事实：对于任何的routes，打乱其route的顺序并不会改变cost
+            # logger.info(f"step {times+1}/{l_times}: current_value={costs}")
+            new_routes = copy.copy(routes)
+            new_costs = costs
+            route_i = new_routes.pop(i)
+            route_j = new_routes.pop(j - 1)
+            remain_costs = costs - carp_instance.costs_of([route_i, route_j])
+            task_edges_ij = route_i + route_j
+            best_sub_routes = None
+            for method in range(5):
+                new_sub_routes, new_sub_costs = heuristic_search.path_scanning(carp_instance.distances,
+                                                                               task_edges_ij,
+                                                                               carp_instance.depot,
+                                                                               carp_instance.capacity,
+                                                                               method, no_copy=False)
+                if new_sub_costs + remain_costs < new_costs:
+                    new_costs = new_sub_costs + new_costs
+                    best_sub_routes = new_sub_routes
+            if best_sub_routes is not None:
+                new_routes = new_routes + best_sub_routes
+                new_routes, new_costs = solution_operators.ulusoy_split(solution_operators.merge(new_routes),
+                                                                        carp_instance)
+                if new_costs < costs:
+                    routes, costs = new_routes, new_costs
+                    did_better = True
+        return routes, costs, did_better
 
 
 local_search = LocalSearch()
@@ -769,6 +826,7 @@ def main():
     routes, costs = solution_operators.ulusoy_split(task_edges, carp_instance)
     initial = CarpSolution(routes, costs)
     routes, costs = local_search.simulated_annealing(carp_instance, initial)
+    # routes, costs = local_search.liu_ray_local_search(carp_instance, solution_operators.merge(routes))
     print(CarpSolution(routes, costs))
     logger.info("finished")
 

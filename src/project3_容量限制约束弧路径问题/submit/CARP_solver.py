@@ -7,6 +7,52 @@ import re
 import copy
 from typing import List
 
+# 参考 https://blog.m-jay.cn/?p=410 用于debug
+import logging
+
+# 此处修改颜色
+FMTDCIT = {
+    'ERROR': "\033[31mERROR\033[0m",
+    'INFO': "\033[37mINFO\033[0m",
+    'DEBUG': "\033[1mDEBUG\033[0m",
+    'WARN': "\033[33mWARN\033[0m",
+    'WARNING': "\033[33mWARNING\033[0m",
+    'CRITICAL': "\033[35mCRITICAL\033[0m",
+}
+
+
+class Filter(logging.Filter):
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.levelname = FMTDCIT.get(record.levelname)
+        return True
+
+
+filter = Filter()
+
+
+def getLogger(
+        name: str,
+        level: int = logging.INFO,
+        fmt: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        fmt_date: str = "%H:%M:%S"
+) -> logging.Logger:
+    fmter = logging.Formatter(fmt, fmt_date)
+    ch = logging.StreamHandler()
+    ch.setLevel(level)
+    ch.setFormatter(fmter)
+    ch.addFilter(filter)
+
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.addHandler(ch)
+    return logger
+
+
+logger = getLogger(__name__, logging.DEBUG)
+
 
 class TimeController():
     def __init__(self):
@@ -521,7 +567,45 @@ class LocalSearch:
     使用局部搜索
     """
 
-    def simulated_annealing(self, carp_instance: CarpInstance, initial: List[List[int]] = None):
+    def simulated_annealing(self, carp_instance: CarpInstance,
+                            initial_task_edges: List[List[int]] = None,
+                            schedule=lambda t: 0.999 ** t,
+                            halt=lambda T: T < 1e-7,
+                            accept_rate=1):
+        """
+        模拟退火算法
+        :param carp_instance:
+        :param initial_task_edges:
+        :param schedule:
+        :param halt:
+        :return:
+        """
+        # state = initial
+        # t = 0  # time step
+        # T = schedule(t)  # temperature
+        # old_value = state.value()
+        # while not halt(T):
+        #     T = schedule(t)
+        #     diff = np.inf
+        #     trys = 10
+        #     while diff >= 0 and trys > 0 and np.exp(-diff / T) <= np.random.uniform():  #
+        #         new_state = state.local_search()
+        #         new_value = new_state.value()
+        #         diff = new_value - old_value
+        #         trys -= 1
+        #     if diff >= 0 and trys <= 0:
+        #         # print(diff)
+        #         continue
+        #     state = new_state
+        #     old_value = new_value
+        #
+        #     # update time and temperature
+        #     if t % log_interval == 0:
+        #         print(f"step {t}: T={T}, current_value={state.value()}")
+        #     t += 1
+        #     T = schedule(t)
+        # print(f"step {t}: T={T}, current_value={state.value()}")
+        # return state, f
         pass
 
     def liu_ray_local_search(self, carp_instance: CarpInstance, initial: List[List[int]] = None):
@@ -599,7 +683,7 @@ def main():
     parser.add_argument('-s', dest='random_seed', action='store', type=int,
                         default=0,
                         help='the random seed used in this run. In case that your solver is stochastic, the random '
-                             'seed controls all the stochastic behaviors of yoursolver, such that the same random '
+                             'seed controls all the stochastic behaviors of your solver, such that the same random '
                              'seeds will make your solver produce the same results. If your solver is deterministic, '
                              'it still needs to accept −s <random_seed>, but can just ignore them while solving CARPs')
     parser.add_argument('--version', action='version', version='version 0.1.0')
@@ -617,6 +701,7 @@ def main():
     routes, costs = solution_operators.ulusoy_split(task_edges, carp_instance)
     assert carp_instance.costs_of(routes) == costs
     print(CarpSolution(routes, costs))
+    logger.info("finished")
 
 
 if __name__ == '__main__':

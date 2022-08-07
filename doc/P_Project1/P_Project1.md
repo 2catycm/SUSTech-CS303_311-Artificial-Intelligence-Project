@@ -1,4 +1,4 @@
-# AI Project1: Development of a superb AI Program for Reversed Reversi 
+# AI Project1: Development of a superb AI Program for Reversed Reversi
 
 叶璨铭，12011404@mail.sustech.edu.cn
 
@@ -20,7 +20,7 @@ In this project, we tries to develop a **high-level *Reversed Reversi* program**
 
 Before we start to develop our own algorithms for Reversed Reversi, it is necessary for us to do a literature review on how previous researchers develop programs that play Reversi, Reversed Reversi and other board games. 
 
-#### Normal Reversi program 
+#### Normal Reversi program
 
 The first world class Reversi program is *IAGO* developed by Rosenbloom in 1982. This program effectively quantified Reversi maxims into efficient algorithms with adversial search techniques. [^10]Later in 1990, 李开复& Mahajan developed another program called *BILL*, which far surpassed the *IAGO* by introducing dynamic evaluation function based on Bayesian learning. [^10][^2]Although *IAGO* and *BILL* are best computer programs that play Reversi at their times, the top human players were not beaten untill the occurence of the program *Logistello* developed by Buro in 1997.[^1]The main new idea of *Logistello* is that it automatically learns from previous plays[^6][^7]**After that, it is generally acknowledged that humans are no match for computers at Reversi.**[^1] 
 
@@ -52,19 +52,19 @@ Now we formulate P, E, A, S and G respectively.
 
 Environment E, Actuators A and Sensors S are defined by the following notations：
 
-|        Notation         | Interpretation                                               | Restrictions                                                 |
-| :---------------------: | ------------------------------------------------------------ | ------------------------------------------------------------ |
-|            n            | The chessboard size. Reversed Reversi typically has 4x4, 6x6 and 8x8 modes. | $n>=4\and n\mod2=0$                                          |
-|           $t$           | The round number. **Notice that in our convention, round 0-3 exists and is played by the environment. The two agents begin to play at round 4.** | $t\in \N \and t<=n^2$                                        |
-|      $i = (x, y)$       | The row index and the column index.                          | $I = \{(x,y)\in \N^2| 0<=x, y<n\}\\i\in I$                   |
-|          $C_t$          | The color that moves at round t. There are 3 possible colors, 0, 1 and -1. Two agents controls only 1 or -1. | $C=\{0,1,-1\}\\C_t\in C \and C_t=2\cdot(t\mod2)-1$           |
-|          $S_t$          | The state of chessboard at round t. It is a nxn matrix with color values. | $S = I\rightarrow C\\S_t: S$                                 |
-| $S_t(x,y)=S_{t}((x,y))$ | The color at (x, y) on the chessboard at round t.            | $S_t(x,y)\in C$                                              |
-|     $ACTIONS(s, c)$     | A set of legal indexes given chessboard state and the color. | $ACTIONS(s, c)\in 2^I $                                      |
-|    $RESULT(s, c,i)$     | The result chessboard after placing index i of color c on chessboard s. | $RESULT:\{(s,c,i)|i\in \\ACTIONS(s,c)\}\rightarrow S$        |
-|  $TERMINAL-TEST(s, c)$  | Whether the chessboard s is a terminated state of the game. It is not related to c in this game, but sometimes it does. | $TERMINAL-TEST: (S\times \{-1,1\})\rightarrow \{T, F\}$      |
-|      UTILITY(s, c)      | For terminated states, defines the reward or profit for player c. UTILITY for the same board and different color must be zero-sumed. | $UTILITY(s, c): \\(\{s\in S|TERMINAL-TEST(s)\}\times\{-1,1\})\rightarrow \R \\UTILITY(s, c)+UTILITY(s, -c)=0$ |
-|         TO, MO          | Time out and memory out for agent.                           | In unit of seconds and in unit of bytes.                     |
+| Notation                | Interpretation                                                                                                                                   | Restrictions                                            |
+|:-----------------------:| ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| n                       | The chessboard size. Reversed Reversi typically has 4x4, 6x6 and 8x8 modes.                                                                      | $n>=4\and n\mod2=0$                                     |
+| $t$                     | The round number. **Notice that in our convention, round 0-3 exists and is played by the environment. The two agents begin to play at round 4.** | $t\in \N \and t<=n^2$                                   |
+| $i = (x, y)$            | The row index and the column index.                                                                                                              | $I = \{(x,y)\in \N^2                                    |
+| $C_t$                   | The color that moves at round t. There are 3 possible colors, 0, 1 and -1. Two agents controls only 1 or -1.                                     | $C=\{0,1,-1\}\\C_t\in C \and C_t=2\cdot(t\mod2)-1$      |
+| $S_t$                   | The state of chessboard at round t. It is a nxn matrix with color values.                                                                        | $S = I\rightarrow C\\S_t: S$                            |
+| $S_t(x,y)=S_{t}((x,y))$ | The color at (x, y) on the chessboard at round t.                                                                                                | $S_t(x,y)\in C$                                         |
+| $ACTIONS(s, c)$         | A set of legal indexes given chessboard state and the color.                                                                                     | $ACTIONS(s, c)\in 2^I $                                 |
+| $RESULT(s, c,i)$        | The result chessboard after placing index i of color c on chessboard s.                                                                          | $RESULT:\{(s,c,i)                                       |
+| $TERMINAL-TEST(s, c)$   | Whether the chessboard s is a terminated state of the game. It is not related to c in this game, but sometimes it does.                          | $TERMINAL-TEST: (S\times \{-1,1\})\rightarrow \{T, F\}$ |
+| UTILITY(s, c)           | For terminated states, defines the reward or profit for player c. UTILITY for the same board and different color must be zero-sumed.             | $UTILITY(s, c): \\(\{s\in S                             |
+| TO, MO                  | Time out and memory out for agent.                                                                                                               | In unit of seconds and in unit of bytes.                |
 
 On top of restrictions on something like domains and ranges, we have some definition for these functions.
 $$
@@ -78,9 +78,9 @@ As for ACTIONS and RESULT, it is inconvenient to use first-order language to des
 Therefore,  our formal definitions for this two function are in Python, and for paper shortage you shall read it on my [github](https://github.com/2catycm/SUSTech-CS303_311-Artificial-Intelligence-Project/blob/master/src/project1/experimental/minimax迭代加深机.py) (look at `actions` and `updated_chessboard` method at the beginning of the file for ACTIONS and RESULT).
 
 > Interlude: 概念辨析——任务环境(Task Environment)和智能体（Agent）的概念的区别与联系
->
+> 
 > **为什么任务环境和智能体都有感受器（Sensors）和效应器（Actuators）？**
->
+> 
 > - 你可能注意到了，我们认为感受器和效应器是任务环境的一部分，而感受器和效应器也是Agent的一部分。[^1]《人工智能现代方法》中这个令人困惑的表述是怎么回事呢？
 > - 其实很容易理解。
 > - 任务环境是一个对Agent要解决的问题的一个模型，为Agent解决问题提供了一个平台。
@@ -120,15 +120,15 @@ where $s_0$ is the final chessboard when $G_0$ is of color $c_0$, and $s_1$ is t
 
 So the performance for our agent, say $G_i$ is 
 $$
-Perf(G_i) = 	SCORES(G_{0:29})[i] / sum(SCORES(G_{0:29}))
+Perf(G_i) =     SCORES(G_{0:29})[i] / sum(SCORES(G_{0:29}))
 $$
 
 > Interlude: 概念辨析——任务环境(Task Environment)和智能体（Agent）的概念的区别与联系(续)
->
+> 
 > 任务环境的Performance和Agent内部的Performance element的区别与联系？
->
+> 
 > 在2.4.6 AIMA提到Learning Agent的内部也有Performance模块。[^1]
->
+> 
 > - 请注意，Learning Agent内部的Performance模块往往与任务环境中我们所说的Performance P**不同**。
 > - 以本次Project为例，任务环境的Performance是指截止日期到时，我们的程序与同学程序两两对打胜利的次数。然而这个Performance的衡量在平时我们改进自己程序的时候是不可用的（或者计算代价很大）。
 > - 这样的Performance是问题本身（任务环境）的要求，是我们的目标，但是不具备可计算性。
@@ -170,7 +170,7 @@ We can see that configuration A and configuration B are different, but after one
 
 In addition, we should show that configuration A and B are possible states to make this proof valid. This can be easily done by writing a search program, for the sake of space limit, we don't go through it. 
 
-#### Performance Theorems 
+#### Performance Theorems
 
 **Definition. **  *Beating relation.* Beating relation is a relation over the set of all agent algorithms. It is satified for algorithm G1 and G2 IFF G1's accumulated UTILITY  is greater or equal to G2's in competitions that takes black color in turn. If G1 and G2 are not deterministic algorithms, then we calculate the expected accummulated UTILITY.  
 
@@ -181,35 +181,40 @@ In addition, we should show that configuration A and B are possible states to ma
 First of all, the set of all chessboard configuration is finite because it has an upper bound of $3^{64}$ . In addition, the set of all possible moves in each steps are finite with an upper bound of 64. Last but not least, the set of all agents are power set of the cartesian product of the former two sets, therefore its size has an upper bound of $2^{3^{64}\times64}$, implying that it can\`t be infinite.
 
 >  Note: Theorem 2. works only when agents are not random. 
->
-> ​	Although theorem 2. has a sound and valid proof, there is an essential assumption hidden behind. **That is, the agent programs are assumed to be deterministic**, i.e. not random.  **If we take random agents into consideration**, the agent would be formulated into a policy function $\pi(s, a)\in[0,1]$,  whose range would be part of real numbers set, **making the set of all agents uncountably infinite**. 
+> 
+> ​    Although theorem 2. has a sound and valid proof, there is an essential assumption hidden behind. **That is, the agent programs are assumed to be deterministic**, i.e. not random.  **If we take random agents into consideration**, the agent would be formulated into a policy function $\pi(s, a)\in[0,1]$,  whose range would be part of real numbers set, **making the set of all agents uncountably infinite**. 
 
 **Corollary 2.** *Round Robin SCORES over all possible agents exists.* 
 
-#### Agent Algorithm Theorems 
+#### Agent Algorithm Theorems
 
 **Definition 1. ** *Minimax Estimate Function*  $ \hat{mv_{d, e}}$ is defined recursively as following:
 
-1.  Basic step. 
+1. Basic step. 
+   
    $$
    \forall e\subseteq S\times R,\forall c\in C,      \\\hat{mv_{0, e}}(s, c)=e(s, c) .\\\\
    $$
+   
    The zero-depth minimax estimate is just the value of evaluation function for the node. 
 
 2. Induction. 
+   
    $$
    \forall e\subseteq S\times R,\forall d\in Depth, \forall c \in C, \\
-   \hat{mv_{d+1, e}}(s, c)= max_{x \in RESULT(s, c, ACTIONS(s))}( \hat{-mv_{d, e}}(x, -c)) 
-   \\
+\hat{mv_{d+1, e}}(s, c)= max_{x \in RESULT(s, c, ACTIONS(s))}( \hat{-mv_{d, e}}(x, -c)) 
+\\
    $$
 
-​			You may notice that our mimimax definition always uses max instead of max for MAX and min for MIN as AIMA book do.[^1]Our version of definition, called maxi-one's-own,  is equivalent and better in the following aspects:
+​            You may notice that our mimimax definition always uses max instead of max for MAX and min for MIN as AIMA book do.[^1]Our version of definition, called maxi-one's-own,  is equivalent and better in the following aspects:
 
 - Minimax estimate function is no more than **a special evaluation function**, **except that it needs recursion and RESULT of chessboards to obtain its value**. Since evaluation function values differ as color differs, it make no sense for minimax estimate function to be without color and relys on the environment given color. 
-- In the perspective of Software Engineering, it is **a bad practice to write hundreds of duplicate and volatile code with just sign changing**, because it makes testing harder and introduces bugs of 2 function inconsistency. 
-- In the view of **Numba**, a single recursive function is **much easier to compile** than 2 recursive funcitons calling each other. [^12]
-- Sometimes games involve **more than 2 players.** In this case, each person haves their own values on the same chessboard, and they both wants to maximize their value, so the game tree is drawn with a floor order 0, 1,2 and each node decides according to its color. In the case of exactly 2 player, their values must be opposite, so minimax makes sense,  [^1]
 
+- In the perspective of Software Engineering, it is **a bad practice to write hundreds of duplicate and volatile code with just sign changing**, because it makes testing harder and introduces bugs of 2 function inconsistency. 
+
+- In the view of **Numba**, a single recursive function is **much easier to compile** than 2 recursive funcitons calling each other. [^12]
+
+- Sometimes games involve **more than 2 players.** In this case, each person haves their own values on the same chessboard, and they both wants to maximize their value, so the game tree is drawn with a floor order 0, 1,2 and each node decides according to its color. In the case of exactly 2 player, their values must be opposite, so minimax makes sense,  [^1]
 3. Bound check.
 
 $$
@@ -232,14 +237,11 @@ flowchart TD;
   C21((null/null/10))
   C22((null/null/-9))
   C2-->C21;C2-->C22
-  
- 
 ```
 
 >  Figure1. In each node s, we display their *minimax estimate function* value of depth 2/1/0. We applied the Definition 1 except that for clarity the rule 3. bound check is not enabled and that the **values are all of color of the root node.** Instead, **depth that are illegal for current node is diplayed as `null`**.
 
 As you can see in the figure1, the node at depth 0, 1 or 2 are able to evaluate their *minimax estimate function* value of depth 2/1/0. If the game ends up at depth 2, the deeper estimation does gain the same estimation orderasf the the shallower ones. 
-
 
 ```mermaid
 flowchart TD;
@@ -300,12 +302,13 @@ Therefore, our general workflow is as follows:
 **Assumption 1.** *Evaluation function is on the current state.* In other words, we don't consider evaluation on actions itself, nor do we consider evaluation on percept histories. 
 
 > Note: Hypothesis 1 and Assumption 1 are **not obvious and not theorems! **From **section 2.2 Environment Theorems 2**, we know that the RESULT function is not invertible, so when we decide our action, the actioned chessboard is lack of information of the previous step. 
->
+> 
 > We make this assumption because 
->
+> 
 > - From the perspective of Minimax, the Minimax value for all chessboard states are determined, **we estimate it with uncertainty because our lack of computational resource.**[^1]**If we were able to have computational resource, we surely won't consider action and percept history.** Therefore it is reasonable to assume that action is helpless to the estimation of minimax value. 
->
+> 
 > - Most papers do so on Reversi.
+> 
 > - This assumption makes the evaluation model simpler. 
 
 **Hypothesis 2.** *The deeper, the better.* We assume a good evaluation function doesn't go worse when it reaches a deeper search. 
@@ -318,23 +321,21 @@ Lee and Mahajan has a similar idea that the mobility must have a weight to indic
 
 ### Model design
 
-####  Evaluation Model
+#### Evaluation Model
 
 The evaluation function must conform to three rules, according to AIMA. [^1]
 
--  The evaluation function must give the same order as the Accurate Minimax Function **at least for the terminated states.**
+- The evaluation function must give the same order as the Accurate Minimax Function **at least for the terminated states.**
 - The evaluation function must not compute for a long time.
 - The evaluation function must be related to the win rate.
 
 I partially agree with AIMA's opinions. If the 
 
-
-
 #### Performance Models
 
 Here four models that measure the performance of the evaluation model are presented. Among them, I proposed model 1, 2, and 3, and model 4 was found in a paper. Since I haven't learnt machine learning in class yet, I only used model 1 and 2 for experiments. 
 
-#####  Performance Model 1: Round Robin First Color in Turn Measure 
+##### Performance Model 1: Round Robin First Color in Turn Measure
 
 A good performance model must at least gives a partial order of what it profiles on. **From Theorem 1. in section 2.2.2, we know that the "beaten relation" is a pretty bad performance model.** Then, how can we measure the performance reliably?
 
@@ -351,9 +352,7 @@ However, this model has 2 serious defects:
 
 That's why we need a better model with random nature: The Monte Carlo Win Rate Estimation Measure. 
 
-#####  Performance Model 2:  Improved Monte Carlo Win Rate Estimation Measure
-
-
+##### Performance Model 2:  Improved Monte Carlo Win Rate Estimation Measure
 
 ##### Performance Model 3: Structural Minimax Value Loss Measure
 
@@ -381,27 +380,25 @@ Actually, this is one of the performance models used by BILL. Lee & Mahajan argu
 
 ```pseudocode
 function Double-Alpha-Maximax-Search(state, color, time_out, q) return a value and a move
-	inputs: state in S, color in C: our value is computed on a 
-				chessboard state in the view of color. 
-			time_out in R, maximum allowed time in unit of seconds. 
-			q in R, a parameter used to balance time and search. 
+    inputs: state in S, color in C: our value is computed on a 
+                chessboard state in the view of color. 
+            time_out in R, maximum allowed time in unit of seconds. 
+            q in R, a parameter used to balance time and search. 
     current_depth = 2
     time_out *= q
     try
-    	do
-    		last_move = move
-    		value, move = Double-Alpha-Maximax-Search(state, color, current_depth, (-1, -1))
-    		current_depth +=1
-    		assumed_breadth = average_breadth(rounds, current_depth) // 宽度表明了多搜一层需要的时间倍数上界。
-    	while(time_used*assumed_breadth < q*time_out or (last_move != move)) and (
+        do
+            last_move = move
+            value, move = Double-Alpha-Maximax-Search(state, color, current_depth, (-1, -1))
+            current_depth +=1
+            assumed_breadth = average_breadth(rounds, current_depth) // 宽度表明了多搜一层需要的时间倍数上界。
+        while(time_used*assumed_breadth < q*time_out or (last_move != move)) and (
                 time_used /q < time_out) and (value!=1)
     catch Timeout
-    	do nothing
+        do nothing
     end try
     return value, move
 ```
-
-
 
 ##### Double-Alpha Maximax Search
 
@@ -409,50 +406,48 @@ This is an implementation of *Minimax Estimate Function*  $\hat{mv_{d, e}}$ defi
 
 ```pseudocode
 function Double-Alpha-Maximax-Search(state, color, remaining_depth, alphas) return a value and a move
-	persist: evaluation in E, a function that maps state and color to value.
-			 table, a hash table that maps chessboard to value calculated in the 					last step of iterative deepening search.
-	inputs: state in S, color in C: our value is computed on a 
-				chessboard state in the view of color. 
-			remaining_depth in N, for convenience, we require remaining_depth 					is at least 1.
-			alphas in [-1,1]^2, a tuple with 2 elements. The 0th is the max available 				value that color -1 can have, The 1th is the max available value 				that color 1 can have. 
-            
+    persist: evaluation in E, a function that maps state and color to value.
+             table, a hash table that maps chessboard to value calculated in the                     last step of iterative deepening search.
+    inputs: state in S, color in C: our value is computed on a 
+                chessboard state in the view of color. 
+            remaining_depth in N, for convenience, we require remaining_depth                     is at least 1.
+            alphas in [-1,1]^2, a tuple with 2 elements. The 0th is the max available                 value that color -1 can have, The 1th is the max available value                 that color 1 can have. 
+
     if TERMINAL-TEST(state)then 
        return MORE-SIGNIFICANT(UTILITY(state, color)), null  // Once terminal state is found, the value should be more-significant than evaluation. In our case, UTILITY is either 0, 1, or -1, and evaluation must be in [-1, 1], so MORE-SIGNIFICANT is just Identity. 
     end if
     acts = ACTION(state, color)
     if EMPTY?(acts) then
-		v, m = Double-Alpha-Maximax-Search(state, -color, remaining_depth-1, alphas)
-		v = -v
-		if len(table)<M then 
-			table[state] = v*color 
-		end if
-		return v, null
-	end if
-	new_chessboards = RESULT(state, color, ACTIONS(state, color))
-	sort acts and new_chessboards together,
-		with the value of each new_chessboard in table first then value in 				evaluation. // For example,  let key= table[state] * current_color + 2 if v is not null else evaluation(state, current_color)
+        v, m = Double-Alpha-Maximax-Search(state, -color, remaining_depth-1, alphas)
+        v = -v
+        if len(table)<M then 
+            table[state] = v*color 
+        end if
+        return v, null
+    end if
+    new_chessboards = RESULT(state, color, ACTIONS(state, color))
+    sort acts and new_chessboards together,
+        with the value of each new_chessboard in table first then value in                 evaluation. // For example,  let key= table[state] * current_color + 2 if v is not null else evaluation(state, current_color)
     if remaining_depth ==1 then return evaluation(new_chessboards[0], color), acts[0] 
     end if
     v, m = lb, null // evaluation function is only allow to in [-1,1], so lb=-1. Well, -inf is also OK, but is not necessary as the domains are well defined. 
     self, other = (color+1)//2, (-color+1)//2
     for action, new_chessboard together in acts and new_chessboards
-    	nv, t = Double-Alpha-Maximax-Search(state, -color, remaining_depth-1, alphas)
-    	nv = -nv
-    	if len(table)<M then 
-			table[state] = v*color 
-		end if
-		if nv > v then 
-			v, m = nv, action
-			alphas[self] = max(alphas[self], v)
-		end if
-		//When another node along the path with the other color accepts at least alphas[other] in his point of view, our lower bound v is interpreted as an upper bound -v that may be rejected by that node. This is alpha-beta pruning, but in a more generalized form.  
-		if -v<=alphas[other] then 
-			return v, m
-		end if
+        nv, t = Double-Alpha-Maximax-Search(state, -color, remaining_depth-1, alphas)
+        nv = -nv
+        if len(table)<M then 
+            table[state] = v*color 
+        end if
+        if nv > v then 
+            v, m = nv, action
+            alphas[self] = max(alphas[self], v)
+        end if
+        //When another node along the path with the other color accepts at least alphas[other] in his point of view, our lower bound v is interpreted as an upper bound -v that may be rejected by that node. This is alpha-beta pruning, but in a more generalized form.  
+        if -v<=alphas[other] then 
+            return v, m
+        end if
     end for
 ```
-
-
 
 ### Model analysis
 
@@ -476,22 +471,22 @@ General Steps in the following experiments.
 
 #### Estimate the average breadth（估计平均行动力）
 
-##### **Experiment principle, experiment hypothesis and experiment purpose.** 
+##### **Experiment principle, experiment hypothesis and experiment purpose.**
 
 **Principle & Purpose. **
 
-​	The Search Breadth, of the Game Tree, or mobility in Reversed Reversi, is a key factor that influence the search depth. A search with average search breadth of b and search depth of d is $O(b^d)$.[^1][^2] **As we know, $3^d \neq \theta(2^d)$ and actually $a<=b\implies a^d=O(b^d)$, although there is often an illusion that they are both "exponential complexity".** [^14]
+​    The Search Breadth, of the Game Tree, or mobility in Reversed Reversi, is a key factor that influence the search depth. A search with average search breadth of b and search depth of d is $O(b^d)$.[^1][^2] **As we know, $3^d \neq \theta(2^d)$ and actually $a<=b\implies a^d=O(b^d)$, although there is often an illusion that they are both "exponential complexity".** [^14]
 
-​	While d is known in Reversed Reversi that it must not exceed 60 by Corollary 1 in 2.2.1, we have no idea what the average mobility is before this experiment. Therefore, **knowing what really the average breadth is in Reverse Reversi** contributes to our attempt to **reduce the effective breadth** by providing the later research with a baseline. In fact, I used the statistics in this experiment into the time control search model in 3.3.3.1.
+​    While d is known in Reversed Reversi that it must not exceed 60 by Corollary 1 in 2.2.1, we have no idea what the average mobility is before this experiment. Therefore, **knowing what really the average breadth is in Reverse Reversi** contributes to our attempt to **reduce the effective breadth** by providing the later research with a baseline. In fact, I used the statistics in this experiment into the time control search model in 3.3.3.1.
 
 **Hypothesis.**
 
-​	Research shows that the average breadth of Reversi in the middle game is approximately 10. [^2]We assume that for Reversed Reversi this holds too. 
+​    Research shows that the average breadth of Reversi in the middle game is approximately 10. [^2]We assume that for Reversed Reversi this holds too. 
 
 ##### Experiment steps
 
 1. Write an accountant function of mobility for the simulator.
-
+   
    ```python
    breadth = np.zeros(65) # 4到64回合可以用
    breadth_times = np.zeros(65)
@@ -502,7 +497,7 @@ General Steps in the following experiments.
    ```
 
 2. Add the new account function into the `accoutants` list in `do_account_tenth`
-
+   
    ```python
    accountants = [account_breadth]
    ```
@@ -539,11 +534,11 @@ This result matches the hypothesis that in the middle of the game the breadth is
 
 #### Estimate the average size of the game tree of n plies after alpha-beta pruning（估计Alpha Beta剪枝后博弈树节点数量）
 
-##### **Experiment principle, experiment hypothesis and experiment purpose.** 
+##### **Experiment principle, experiment hypothesis and experiment purpose.**
 
 **Principle.**
 
-​		Knuth&Moore proved that, with an ideal move sorting, alpha beta pruning has a time complexity of O($b^{\frac{d}{2}}$). [^1]Research also shows that alpha-beta boosts up the search of Tic-Tac-Tok by 15 times.[^2]
+​        Knuth&Moore proved that, with an ideal move sorting, alpha beta pruning has a time complexity of O($b^{\frac{d}{2}}$). [^1]Research also shows that alpha-beta boosts up the search of Tic-Tac-Tok by 15 times.[^2]
 
 **Hypothesis. Alpha beta pruning drops down the effective branch breadth to be its square root.** [^1]
 
@@ -556,7 +551,7 @@ This result matches the hypothesis that in the middle of the game the breadth is
 ##### Experiment steps
 
 1. Write a new account function for  nodes. 
-
+   
    ```python
    a_b_nodes = np.zeros(65)
    a_b_nodes_times = np.zeros(65)
@@ -569,7 +564,7 @@ This result matches the hypothesis that in the middle of the game the breadth is
    ```
 
 2. Add the new account function into the `accoutants` list in `do_account_tenth`
-
+   
    ```python
    accountants = [account_breadth, account_a_b_nodes]
    ```
@@ -631,9 +626,7 @@ In other words, $nodes = h\cdot\sqrt{b}^d+b$ . And we shall see if different dep
 
 #### 估计胜者特征：平均占角数与稳定子数
 
-
-
-### Explore the influence of different evaluation functions on Agent performance when the algorithm is greedy invincibility algorithm (探究当算法为贪心不败算法时不同评估函数对Agent性能的影响) 
+### Explore the influence of different evaluation functions on Agent performance when the algorithm is greedy invincibility algorithm (探究当算法为贪心不败算法时不同评估函数对Agent性能的影响)
 
 #### General experiment principle
 
@@ -642,7 +635,9 @@ In this part, we do experiments to verify **whether a characteristic is incremen
 We control the variable by
 
 - 自变量: 评估函数的类型与参数
+
 - 无关变量：搜索算法的类型。 
+  
   - 控制为统一使用贪心不败算法（Greedy Invincibility, 指**前面回合使用贪心策略，后12回合启用终局搜索**）。
   - 如Performance Model中我们提到的，贪心不败算法比起贪心算法，对胜率的评估更为科学，可以更好地衡量agent的性能。
 
@@ -662,8 +657,6 @@ We control the variable by
 
 ##### Experiment principle
 
-
-
 ##### Experiment steps
 
 1. Open the notebook [`experiment/搜索算法/局部搜索/演化计算_子力特征.ipynb`](https://github.com/2catycm/SUSTech-CS303_311-Artificial-Intelligence-Project/blob/master/experiment/搜索算法/局部搜索/演化计算_子力特征.ipynb). 
@@ -679,7 +672,7 @@ array([[ 0.58294678,  0.32422638,  0.30072021,  0.04949951,  0.74310493,
 
 with improved monte carlo **win rate of 0.85345**.![Trace Plot](.\P_Project1.assets\Trace Plot.svg)
 
-#### Local search for the optimal weights of combination evaluation model based on Genetic Algorithm(基于演化计算的多阶段多特征融合评估优化) 
+#### Local search for the optimal weights of combination evaluation model based on Genetic Algorithm(基于演化计算的多阶段多特征融合评估优化)
 
 ##### Experiment results
 
@@ -700,17 +693,15 @@ The improved monte carlo **win rate** for the best variable is **0.93** , far su
 
 ### Explore the influence of different search strategies on Agent performance when the evaluation function is constant (探究当评估函数一定时，不同搜索策略对Agent性能的影响)
 
-
-
 ## Conclusion and discussion
 
 In conclusion, the three models I built have these advantages and disadvantages: 
 
-| Model             | Advantages                                                   | Disadvantages                                                |
-| ----------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| Evaluation model  | concise and easy to implement.                               | too less parameters, too less characteristics compared to state-of-the-art Reversed Reversi Programs. |
-| Performance model | Round robin Model is what OJ Performance uses. **Random model is reasonable by Law of large Numbers.** | Round robin is limited for accessible players. Random algorithm is too weak even with a end game search. Random algorithm need a long time to reach a acceptable precision. |
-| Search model      | Reasonable timing strategy. **Best search depth among my classmates that uses alpha beta search scheme(I reach a average depth of 9 and 12 in the middle game and the end game).** | 20% of the time is not used. We can probably run MCTS at the rest of the time in further study. |
+| Model             | Advantages                                                                                                                                                                         | Disadvantages                                                                                                                                                               |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Evaluation model  | concise and easy to implement.                                                                                                                                                     | too less parameters, too less characteristics compared to state-of-the-art Reversed Reversi Programs.                                                                       |
+| Performance model | Round robin Model is what OJ Performance uses. **Random model is reasonable by Law of large Numbers.**                                                                             | Round robin is limited for accessible players. Random algorithm is too weak even with a end game search. Random algorithm need a long time to reach a acceptable precision. |
+| Search model      | Reasonable timing strategy. **Best search depth among my classmates that uses alpha beta search scheme(I reach a average depth of 9 and 12 in the middle game and the end game).** | 20% of the time is not used. We can probably run MCTS at the rest of the time in further study.                                                                             |
 
 Experimental results match my expectation. 
 
@@ -748,4 +739,3 @@ In further study, I might try to apply new knowledge about machine learning that
 [^13]: 学堂在线, “人工智能原理 - 北京大学,” 学堂在线. https://www.xuetangx.com/learn/PKU08091000777/PKU08091000777/10322346/video/17400688 (accessed Jul. 17, 2022).
 
 [^14]: R. Sedgewick and K. Wayne, *Algorithms*, 4th edition. Upper Saddle River, NJ: Addison-Wesley Professional, 2011.
-

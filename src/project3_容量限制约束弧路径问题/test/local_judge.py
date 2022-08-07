@@ -15,7 +15,8 @@ if __name__ == '__main__':
     times = []
     dats = list(cwd.rglob("*.dat"))
     for i, dat in enumerate(dats):
-        name = dat.stem.split("_")[1]  # 要求命名按照 i_name 的形式。
+        # name = dat.stem.split("_")[1]  # 要求命名按照 i_name 的形式。
+        name = dat.stem  # 正常命名
         print(f"Running {i}/{len(dats) - 1} instance {name}. ")
         param = f'"{dat}" '
         param += f'-t {time_limit_seconds} '

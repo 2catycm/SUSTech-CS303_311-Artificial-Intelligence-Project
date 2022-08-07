@@ -215,15 +215,17 @@ class SolutionOperators:
                 # 表示从这个任务开始，到这个任务结束，中间没有回仓库休息。
                 current = depot
                 cost = 0
+                demand = 0
                 for k in range(i, j + 1):
                     task_edge_k = task_edges[k]
                     cost += distances[current, task_edge_k[0]]  # task_edge_k.start
                     cost += task_edge_k[2]  # task_edge_k.cost
+                    demand += task_edge_k[3] # task_edge_k.demand
                     current = task_edge_k[1]  # task_edge_k.end
                 cost += distances[current, depot]
-                if cost <= capacity:
+                if demand <= capacity:
                     # 是一种可能情况，所以加入到图中。
-                    digraph[task_i[0]].append([task_j[0], cost])  # 加入这一种到达方案
+                    digraph[2*i+1].append([2*j+2, cost])  # 加入这一种到达方案
         for i in range(1, N):  # 1:N-1 插入0
             digraph[2 * i].append([2 * i + 1, 0])
         # 2. 求解最短路
@@ -238,7 +240,7 @@ class SolutionOperators:
                     paths[relative[0]] = i
         # 3. 恢复切割。 比如，上一步求出了 1-》4-》5-》8 的最短路
         current = 2 * N  # 比如 8
-        split_points = [current]
+        split_points = [current+1]
         while current > 1:
             parent = paths[current]
             assert parent != -1 and parent < current and parent % 2 == 1  # 不是没有最短路径、在前面、是奇数节点而不是偶数节点。
@@ -286,12 +288,12 @@ class SolutionOperators:
         for i in range(1, N):
             task_edge_i_1 = task_edges[i - 1]
             task_edge_i = task_edges[i]
-            for j in range(capacity + 1):
+            for j in range(1, capacity + 1):
                 # 选择回城。 opt的容量充满
                 go_back_cost = distances[task_edge_i_1[1], depot]  # 从上一次的end回城
                 go_back_cost += distances[depot, task_edge_i[0]]  # 来到这一次的起点
                 go_back_cost += opt[i - 1, capacity]
-                if j < task_edge_i[3]:
+                if j <= task_edge_i[3]:
                     opt[i, j] = go_back_cost
                     go_back[i, j] = True
                 else:
@@ -312,7 +314,8 @@ class SolutionOperators:
         while current_node > 0:
             assert current_cap >= 0
             if go_back[current_node, current_cap]:
-                split_points.append(current_node)
+                split_points.insert(0, current_node)
+                current_cap = capacity
             else:
                 current_cap -= task_edges[current_node][3]  # 剪掉demand
             current_node -= 1
@@ -518,7 +521,12 @@ def main():
     carp_solver = HeuristicSearch(carp_instance)
     solution = carp_solver.path_scanning()
     assert solution.costs == carp_instance.costs_of(solution.routes)
-    print(solution)
+    # print(solution)
+    solution_operators = SolutionOperators()
+    task_edges = solution_operators.merge(solution.routes)
+    routes, costs = solution_operators.ulusoy_split(task_edges, carp_instance)
+    assert carp_instance.costs_of(routes) == costs
+    print(CarpSolution(routes, costs))
 
 
 if __name__ == '__main__':

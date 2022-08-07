@@ -220,12 +220,12 @@ class SolutionOperators:
                     task_edge_k = task_edges[k]
                     cost += distances[current, task_edge_k[0]]  # task_edge_k.start
                     cost += task_edge_k[2]  # task_edge_k.cost
-                    demand += task_edge_k[3] # task_edge_k.demand
+                    demand += task_edge_k[3]  # task_edge_k.demand
                     current = task_edge_k[1]  # task_edge_k.end
                 cost += distances[current, depot]
                 if demand <= capacity:
                     # 是一种可能情况，所以加入到图中。
-                    digraph[2*i+1].append([2*j+2, cost])  # 加入这一种到达方案
+                    digraph[2 * i + 1].append([2 * j + 2, cost])  # 加入这一种到达方案
         for i in range(1, N):  # 1:N-1 插入0
             digraph[2 * i].append([2 * i + 1, 0])
         # 2. 求解最短路
@@ -240,7 +240,7 @@ class SolutionOperators:
                     paths[relative[0]] = i
         # 3. 恢复切割。 比如，上一步求出了 1-》4-》5-》8 的最短路
         current = 2 * N  # 比如 8
-        split_points = [current+1]
+        split_points = [current + 1]
         while current > 1:
             parent = paths[current]
             assert parent != -1 and parent < current and parent % 2 == 1  # 不是没有最短路径、在前面、是奇数节点而不是偶数节点。
@@ -396,6 +396,18 @@ class SolutionOperators:
         task_edge = task_edges[i]
         task_edge[0], task_edge[1] = task_edge[1], task_edge[0]  # 交换顺序。
 
+    def better_flip(self, carp_instance: CarpInstance, task_edges: List[List[int]], i, j=None):
+        old_routes, old_costs = self.ulusoy_split(task_edges, carp_instance)
+        self.flip(task_edges, i)
+        new_routes, new_costs = self.ulusoy_split(task_edges, carp_instance)
+        if new_costs > old_costs:
+            self.flip(task_edges, i)
+            return old_routes, old_costs
+        return new_routes, new_costs
+
+
+solution_operators = SolutionOperators()
+
 
 class HeuristicSearch:
     """
@@ -408,21 +420,37 @@ class HeuristicSearch:
     如果需要解更加特殊的 中国邮递员问题 ， 可以 每一条边都设置一个任务。
     """
 
-    def __init__(self, carp_instance):
-        self.carp_instance = carp_instance
-
-    def betterThan(self, new_edge, old_edge, load, capacity, depot, distances):
-        diff_ratio = new_edge[3] / new_edge[2] - old_edge[3] / old_edge[2]
+    def maximize_dist(self, new_edge, old_edge, load, capacity, depot, distances):
         diff_distance = distances[new_edge[0], depot] - distances[old_edge[0], depot]
+        return diff_distance > 0
+
+    def minimize_dist(self, new_edge, old_edge, load, capacity, depot, distances):
+        diff_distance = distances[new_edge[0], depot] - distances[old_edge[0], depot]
+        return diff_distance < 0
+
+    def maximize_yield(self, new_edge, old_edge, load, capacity, depot, distances):
+        diff_ratio = new_edge[3] / new_edge[2] - old_edge[3] / old_edge[2]
+        return diff_ratio > 0
+
+    def minimize_yield(self, new_edge, old_edge, load, capacity, depot, distances):
+        diff_ratio = new_edge[3] / new_edge[2] - old_edge[3] / old_edge[2]
+        return diff_ratio < 0
+
+    def half_full_dist(self, new_edge, old_edge, load, capacity, depot, distances):
         full_ratio = load / capacity
         assert 0 <= full_ratio <= 1
-        return diff_distance if full_ratio > 0.5 else -diff_distance
+        diff_distance = distances[new_edge[0], depot] - distances[old_edge[0], depot]
+        return diff_distance > 0 if full_ratio < 0.5 else diff_distance < 0
 
-    def path_scanning(self):
-        distances = self.carp_instance.distances
-        unserviced = copy.deepcopy(self.carp_instance.task_edges)
-        depot = self.carp_instance.depot
-        capacity = self.carp_instance.capacity
+    def path_scanning(self, carp_instance, evaluator_index: int = 4):
+        evaluators = [self.maximize_dist, self.minimize_dist, self.maximize_yield, self.minimize_yield,
+                      self.half_full_dist]
+        assert 0 <= evaluator_index < len(evaluators)
+        evaluator = evaluators[evaluator_index]
+        distances = carp_instance.distances
+        unserviced = copy.deepcopy(carp_instance.task_edges)
+        depot = carp_instance.depot
+        capacity = carp_instance.capacity
 
         routes = []
         costs = 0
@@ -445,7 +473,7 @@ class HeuristicSearch:
                             d = new_dist
                             u = new_edge
                             u_remove = task_edge
-                        elif new_dist == d and self.betterThan(new_edge, u, load, capacity, depot, distances):
+                        elif new_dist == d and evaluator(new_edge, u, load, capacity, depot, distances):
                             u = new_edge
                             u_remove = task_edge
                 if d == np.inf:
@@ -463,14 +491,57 @@ class HeuristicSearch:
         return CarpSolution(routes, costs)
 
 
+heuristic_search = HeuristicSearch()
+
+
 class LocalSearch:
     """
     使用局部搜索
     """
 
-    def __init__(self, carp_instance):
-        self.carp_instance = carp_instance
-    # def
+    def simulated_annealing(self, carp_instance: CarpInstance, initial: List[List[int]] = None):
+        pass
+
+    def liu_ray_local_search(self, carp_instance: CarpInstance, initial: List[List[int]] = None):
+        """
+        使用 Liu&Ray 的局部搜索方法
+        :return routes:
+        :return costs:
+        """
+        state11, i11, j11 = solution_operators.operator_interface('single_insertion', initial)
+        state12, i12, j12 = solution_operators.operator_interface('double_insertion', initial)
+        state13, i13, j13 = solution_operators.operator_interface('swap', initial)
+        routes11, costs11 = solution_operators.better_flip(carp_instance, state11, j11)
+        routes12, costs12 = solution_operators.better_flip(carp_instance, state12, j12)
+        routes13, costs13 = solution_operators.better_flip(carp_instance, state13, j13)
+        if costs11 <= costs12 and costs11 <= costs13:
+            routes, costs = routes11, costs11
+        elif costs12 <= costs11 and costs12 <= costs13:
+            routes, costs = routes12, costs12
+        elif costs13 <= costs11 and costs13 <= costs12:
+            routes, costs = routes13, costs13
+        else:
+            assert False
+        N_trips = len(routes)
+        l_times = int(min(N_trips * (N_trips - 1) / 2, 50))  # number of attempts
+        times = 0
+        # 随便选择两个 route（trip）， 重新分配
+        i_range = list(range(N_trips - 1))
+        random.shuffle(i_range)
+        try:
+            for i in i_range:
+                j_range = list(range(i + 1, N_trips))
+                random.shuffle(j_range)
+                for j in j_range:
+                    times += 1
+                    if times > l_times:
+                        raise Exception()
+
+        finally:
+            pass
+
+
+local_search = LocalSearch()
 
 
 class EvolutionarySearch:
@@ -514,15 +585,10 @@ def main():
     args = parser.parse_args()
     random.seed(args.random_seed)  # 也可以不加，避免被攻击。
     carp_instance = CarpInstance().with_file(args.carp_instance).with_distances_calculated()
-    # print(carp_instance)
-    # carp_instance2 = carp_instance.copy()
-    # carp_instance2.capacity = 3
-    # carp_solver = HeuristicSearch(carp_instance2)
-    carp_solver = HeuristicSearch(carp_instance)
-    solution = carp_solver.path_scanning()
+
+    solution = heuristic_search.path_scanning(carp_instance)
     assert solution.costs == carp_instance.costs_of(solution.routes)
     # print(solution)
-    solution_operators = SolutionOperators()
     task_edges = solution_operators.merge(solution.routes)
     routes, costs = solution_operators.ulusoy_split(task_edges, carp_instance)
     assert carp_instance.costs_of(routes) == costs
